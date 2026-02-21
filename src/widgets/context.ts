@@ -99,6 +99,23 @@ function calculatePercentage(used: number, limit: number): number {
 }
 
 /**
+ * Create a progress bar string
+ *
+ * @param percentage - Percentage (0-100)
+ * @param width - Width of the bar in characters (default: 10)
+ * @returns Progress bar string like "[██████░░░░]"
+ */
+function createProgressBar(percentage: number, width = 10): string {
+  const filledCount = Math.round((percentage / 100) * width);
+  const emptyCount = width - filledCount;
+
+  const filled = "█".repeat(filledCount);
+  const empty = "░".repeat(emptyCount);
+
+  return `[${filled}${empty}]`;
+}
+
+/**
  * Format context display
  */
 function formatContext(
@@ -107,14 +124,31 @@ function formatContext(
   icon: string
 ): string {
   const format = config.format ?? "compact";
+  const options = config.options ?? {};
+  const showProgressBar = options.progressBar === true;
+  const progressWidth = typeof options.progressWidth === "number"
+    ? options.progressWidth
+    : 10;
+
+  let result = "";
+
+  // Add progress bar if enabled
+  if (showProgressBar) {
+    result += createProgressBar(tokenPercent, progressWidth);
+  }
 
   if (format === "minimal") {
-    return `${tokenPercent}%`;
+    return showProgressBar
+      ? `${result} ${tokenPercent}%`
+      : `${tokenPercent}%`;
   }
 
   const label = format === "detailed" ? "ctx" : "";
+  const text = `${icon}${label}:${tokenPercent}%`;
 
-  return `${icon}${label}:${tokenPercent}%`;
+  return showProgressBar
+    ? `${result} ${text}`
+    : text;
 }
 
 /**
