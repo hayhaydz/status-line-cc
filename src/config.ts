@@ -49,6 +49,9 @@ const PROJECT_CONFIG_DIR = ".statusline-hyz-cc";
 /** Project config file name */
 const PROJECT_CONFIG_FILE = "config.json";
 
+/** Legacy project config file (at root, for simplicity) */
+const LEGACY_PROJECT_CONFIG_FILE = ".statusline-hyz-cc.json";
+
 /**
  * Deep merge two objects (destination takes precedence)
  * Exported for testing
@@ -96,16 +99,23 @@ async function loadConfigFile(path: string): Promise<Partial<Config> | null> {
 
 /**
  * Find project config path by walking up from cwd
+ * Checks both .statusline-hyz-cc/config.json and .statusline-hyz-cc.json (legacy)
  */
 function findProjectConfigPath(startDir: string): string | null {
   let currentDir = startDir;
 
   // Walk up to 10 levels looking for project config
   for (let i = 0; i < 10; i++) {
-    const configPath = join(currentDir, PROJECT_CONFIG_DIR, PROJECT_CONFIG_FILE);
+    // Check for directory-style config first (.statusline-hyz-cc/config.json)
+    const dirConfigPath = join(currentDir, PROJECT_CONFIG_DIR, PROJECT_CONFIG_FILE);
+    if (existsSync(dirConfigPath)) {
+      return dirConfigPath;
+    }
 
-    if (existsSync(configPath)) {
-      return configPath;
+    // Check for legacy root-level config (.statusline-hyz-cc.json)
+    const legacyConfigPath = join(currentDir, LEGACY_PROJECT_CONFIG_FILE);
+    if (existsSync(legacyConfigPath)) {
+      return legacyConfigPath;
     }
 
     const parentDir = dirname(currentDir);

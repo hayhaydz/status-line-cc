@@ -89,6 +89,9 @@ export interface CacheEntry<T> {
  * Main configuration structure (3-level hierarchy)
  */
 export interface Config {
+  /** Enable/disable the statusline globally or per-project */
+  enabled?: boolean;
+
   /** Global output format */
   format?: "compact" | "detailed" | "minimal";
 

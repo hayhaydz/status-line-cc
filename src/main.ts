@@ -19,6 +19,7 @@ import { createCacheWidget } from "./widgets/cache.ts";
 import { createWebSearchWidget } from "./widgets/websearch.ts";
 import type { ClaudeCodeInput, OutputFormat } from "./types.ts";
 import { error as logError } from "./util/logger.ts";
+import { handleCliCommand } from "./cli.ts";
 
 /**
  * Register all available widgets
@@ -88,6 +89,17 @@ function parseOutputFormat(
  * Main entry point
  */
 export async function main(): Promise<void> {
+  // Check for CLI commands first (before reading stdin)
+  // Get CLI args, skip bun/node executable and script path
+  const cliArgs = process.argv.slice(2);
+  const processCwd = process.cwd();
+
+  const cliHandled = await handleCliCommand(cliArgs, processCwd);
+  if (cliHandled) {
+    // CLI command was handled, exit early
+    return;
+  }
+
   // Register all widgets
   registerAllWidgets();
 
@@ -101,8 +113,14 @@ export async function main(): Promise<void> {
   }
 
   // Load configuration
-  const cwd = input.cwd ?? input.workspace?.current_dir ?? input.workspace?.project_dir ?? process.cwd();
+  const cwd = input.cwd ?? input.workspace?.current_dir ?? input.workspace?.project_dir ?? processCwd;
   const config = await loadConfig(cwd);
+
+  // Check if statusline is disabled
+  if (config.enabled === false) {
+    console.log("");
+    return;
+  }
 
   // Configure logger
   configureLoggerFromConfig(config);
