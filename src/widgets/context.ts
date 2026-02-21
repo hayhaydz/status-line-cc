@@ -11,6 +11,7 @@ import type { Widget, WidgetConfig, ClaudeCodeInput, Config } from "../types.js"
 import { BaseWidget } from "../widget.js";
 import { debug } from "../util/logger.js";
 import { extractModelId } from "../util/model.js";
+import { formatWidgetValue } from "../util/format.js";
 
 /** Default context icon (Nerd Font bolt) */
 const DEFAULT_ICON = "\uf0e7"; // nf-fa-bolt
@@ -116,25 +117,20 @@ function formatContext(
   const options = config.options ?? {};
   const showProgressBar = options.progressBar === true;
 
-  let result = "";
-
   // Add progress bar if enabled (fixed width of 10 characters)
+  const progressBar = showProgressBar ? createProgressBar(tokenPercent) : "";
+
+  // Use format with label (only in detailed mode)
+  const value = formatWidgetValue(`${tokenPercent}%`, icon, config, {
+    short: "",
+    long: "ctx",
+  });
+
   if (showProgressBar) {
-    result += createProgressBar(tokenPercent);
+    return `${progressBar} ${value}`;
   }
 
-  if (format === "minimal") {
-    return showProgressBar
-      ? `${result} ${tokenPercent}%`
-      : `${tokenPercent}%`;
-  }
-
-  const label = format === "detailed" ? "ctx" : "";
-  const text = `${icon}${label}:${tokenPercent}%`;
-
-  return showProgressBar
-    ? `${result} ${text}`
-    : text;
+  return value;
 }
 
 /**
