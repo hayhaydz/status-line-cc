@@ -9,8 +9,10 @@ import type { Widget, WidgetConfig, ClaudeCodeInput, Config } from "../types.js"
 import { BaseWidget } from "../widget.js";
 import { getGLMQuota, findQuotaLimit, type GLMQuotaLimit } from "../util/glm-api.js";
 
-/** Default web search icon (Nerd Font globe) */
-const DEFAULT_ICON = "\uf0ac"; // nf-fa-globe
+/** Default web search icons */
+const DEFAULT_ICON = "\u{f0ac}";      // Nerd Font: nf-fa-globe
+const TEXT_CONTENT_ICON = "web:";      // Text mode
+const EMOJI_ICON = "🌐";                // Emoji: globe
 
 /** MCP usage limit type in GLM API */
 const MCP_LIMIT_TYPE = "MCP usage(1 Month)";
@@ -59,6 +61,8 @@ function formatWebSearchQuota(
 export class WebSearchWidget extends BaseWidget {
   readonly name = "websearch";
   protected defaultIcon = DEFAULT_ICON;
+  protected textContentIcon = TEXT_CONTENT_ICON;  // ADD THIS
+  protected emojiIcon = EMOJI_ICON;               // ADD THIS
 
   async render(input: ClaudeCodeInput, config: WidgetConfig, globalConfig?: Config): Promise<string> {
     const quota = await getGLMQuota(globalConfig);
@@ -75,7 +79,7 @@ export class WebSearchWidget extends BaseWidget {
     }
 
     const webSearchQuota = extractWebSearchQuota(mcpLimit);
-    const icon = this.getIcon(config);
+    const icon = this.getIcon(config, globalConfig);
 
     return formatWebSearchQuota(webSearchQuota, config, icon);
   }
