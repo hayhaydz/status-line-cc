@@ -3,6 +3,28 @@
  */
 
 /**
+ * Context window current usage snapshot
+ */
+export interface ContextWindowCurrentUsage {
+  input_tokens?: number;
+  output_tokens?: number;
+  cache_creation_input_tokens?: number;
+  cache_read_input_tokens?: number;
+}
+
+/**
+ * Context window information from Claude Code
+ */
+export interface ContextWindow {
+  total_input_tokens?: number;
+  total_output_tokens?: number;
+  context_window_size?: number;
+  used_percentage?: number;
+  remaining_percentage?: number;
+  current_usage?: ContextWindowCurrentUsage;
+}
+
+/**
  * Input JSON from Claude Code (via stdin)
  */
 export interface ClaudeCodeInput {
@@ -15,6 +37,7 @@ export interface ClaudeCodeInput {
   version?: string;
   output_style?: { name?: string };
   cost?: { total_cost_usd?: number; total_duration_ms?: number };
+  context_window?: ContextWindow;
 }
 
 /**

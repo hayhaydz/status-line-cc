@@ -15,6 +15,7 @@ import { createConcurrencyWidget } from "./widgets/concurrency.ts";
 import { createContextWidget } from "./widgets/context.ts";
 import { createBlockWidget } from "./widgets/block.ts";
 import { createGLMWidget } from "./widgets/glm.ts";
+import { createCacheWidget } from "./widgets/cache.ts";
 import type { ClaudeCodeInput, OutputFormat } from "./types.ts";
 import { error as logError } from "./util/logger.ts";
 
@@ -28,6 +29,7 @@ function registerAllWidgets(): void {
   registerWidget(createContextWidget());
   registerWidget(createBlockWidget());
   registerWidget(createGLMWidget());
+  registerWidget(createCacheWidget());
 }
 
 /**
