@@ -205,15 +205,3 @@ export function getWidgetConfig(
   };
 }
 
-/**
- * Get GLM API credentials from config or environment
- */
-export function getGLMCredentials(config: Config): {
-  baseUrl: string;
-  authToken: string;
-} {
-  const baseUrl = config.glm?.baseUrl ?? process.env.ANTHROPIC_BASE_URL ?? "https://api.z.ai/api/anthropic";
-  const authToken = config.glm?.authToken ?? process.env.ANTHROPIC_AUTH_TOKEN ?? "";
-
-  return { baseUrl, authToken };
-}
