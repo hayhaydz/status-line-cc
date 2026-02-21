@@ -10,6 +10,7 @@ import { existsSync } from "node:fs";
 import type { Widget, WidgetConfig, ClaudeCodeInput, Config } from "../types.js";
 import { BaseWidget } from "../widget.js";
 import { debug } from "../util/logger.js";
+import { extractModelId } from "../util/model.js";
 
 /** Default context icon (Nerd Font bolt) */
 const DEFAULT_ICON = "\uf0e7"; // nf-fa-bolt
@@ -25,24 +26,12 @@ const CONTEXT_LIMITS: Record<string, number> = {
 const DEFAULT_CONTEXT_LIMIT = 200_000;
 
 /**
- * Extract model ID from input
- */
-function extractModelId(input: ClaudeCodeInput): string {
-  if (!input.model) {
-    return "unknown";
-  }
-
-  if (typeof input.model === "string") {
-    return input.model;
-  }
-
-  return input.model.id ?? "unknown";
-}
-
-/**
  * Get context limit for model
  */
-function getContextLimit(modelId: string): number {
+function getContextLimit(modelId?: string): number {
+  if (!modelId) {
+    return DEFAULT_CONTEXT_LIMIT;
+  }
   return CONTEXT_LIMITS[modelId] ?? DEFAULT_CONTEXT_LIMIT;
 }
 
