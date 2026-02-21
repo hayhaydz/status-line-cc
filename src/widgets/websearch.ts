@@ -80,10 +80,3 @@ export class WebSearchWidget extends BaseWidget {
     return formatWebSearchQuota(webSearchQuota, config, icon);
   }
 }
-
-/**
- * Create a web search widget instance
- */
-export function createWebSearchWidget(): Widget {
-  return new WebSearchWidget();
-}
