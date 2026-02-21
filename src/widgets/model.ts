@@ -74,10 +74,3 @@ export class ModelWidget extends BaseWidget {
     return formatModel(modelId, multiplier, config, icon);
   }
 }
-
-/**
- * Create a model widget instance
- */
-export function createModelWidget(): Widget {
-  return new ModelWidget();
-}
