@@ -7,11 +7,14 @@
  * detects when the block percentage drops significantly (indicating a reset).
  *
  * Usage:
- *   bun run scripts/detect-block-times.ts [hours]
+ *   bun run scripts/detect-block-times.ts [hours] [--mock]
  *
  * Environment variables required:
  *   ANTHROPIC_BASE_URL - API base URL (default: https://api.z.ai/api/anthropic)
  *   ANTHROPIC_AUTH_TOKEN - Your GLM API token
+ *
+ * Options:
+ *   --mock       Run in mock mode (simulates API responses for testing, 30s polling)
  *
  * Example output saved to scripts/block-times.json:
  *   {
@@ -20,35 +23,33 @@
  *     "suggestedSchedule": ["00:03", "05:03", "10:03", "15:03", "20:03 UTC"],
  *     "lastUpdated": "2026-02-21T10:05:00.000Z"
  *   }
+ *
+ * NOTE: Polls every 10 minutes to avoid rate limiting. If you get 429 errors,
+ * increase POLL_INTERVAL_MS or check if your statusline is also polling the API.
  */
 
-import { writeFile } from "node:fs/promises";
+import "dotenv/config";
+import { write, argv, sleep } from "bun";
 import { fetchGLMQuota } from "../src/util/glm-api.ts";
 
 // ============================================================================
 // CONSTANTS
 // ============================================================================
 
-/** Polling interval in milliseconds (2 minutes) */
-const POLL_INTERVAL_MS = 2 * 60 * 1000;
-
-/** Percentage drop threshold to detect a reset */
+const POLL_INTERVAL_MS = 10 * 60 * 1000; // 10 minutes - don't hammer the API
+const MOCK_POLL_INTERVAL_MS = 30 * 1000; // 30 seconds for mock mode testing
 const RESET_THRESHOLD_PERCENT = 50;
-
-/** Hour window for matching 5-hour boundaries */
-const BOUNDARY_WINDOW_HOURS = 2;
-
-/** Expected 5-hour block boundaries in UTC */
 const FIVE_HOUR_BOUNDARIES = [0, 5, 10, 15, 20] as const;
 
-/** Poll result with timestamp and percentage */
+// Mock mode: simulate blocks that reset at :03 past the hour
+const MOCK_BLOCK_OFFSET_MINUTES = 3;
+
 interface PollResult {
   timestamp: string;
   percentage: number;
   isReset: boolean;
 }
 
-/** Final analysis results */
 interface DetectionResults {
   detectedResets: string[];
   blockOffsetMinutes: number;
@@ -56,148 +57,158 @@ interface DetectionResults {
   lastUpdated: string;
 }
 
-// Store partial results for Ctrl+C handler
 let partialResults: PollResult[] = [];
 let isPolling = false;
+let mockMode = false;
 
 /**
- * Fetch current block percentage from GLM API
- * Reuses the shared fetchGLMQuota function from glm-api.ts
+ * Simulates API responses in mock mode.
+ * Simulates a block that resets at :03 past every 5-hour boundary.
  */
-async function getBlockPercentage(): Promise<number | null> {
-  const response = await fetchGLMQuota();
+async function getMockBlockPercentage(): Promise<number> {
+  const now = new Date();
+  const utcHour = now.getUTCHours();
+  const utcMinute = now.getUTCMinutes();
 
+  // Find the current 5-hour block start time (with mock offset)
+  let blockStartHour = FIVE_HOUR_BOUNDARIES[0];
+  for (const hour of FIVE_HOUR_BOUNDARIES) {
+    if (utcHour >= hour) {
+      blockStartHour = hour;
+    } else {
+      break;
+    }
+  }
+
+  // Calculate minutes since block start (including offset)
+  const blockStartTotalMinutes = blockStartHour * 60 + MOCK_BLOCK_OFFSET_MINUTES;
+  const currentTotalMinutes = utcHour * 60 + utcMinute;
+  let minutesSinceReset = currentTotalMinutes - blockStartTotalMinutes;
+
+  // Handle negative (we're in the next day's first block)
+  if (minutesSinceReset < 0) {
+    minutesSinceReset += 24 * 60;
+  }
+
+  // Simulate increasing usage as block progresses
+  // 5 hours = 300 minutes, so percentage = (minutes / 300) * 100 + some base usage
+  const percentage = Math.min(95, Math.floor((minutesSinceReset / 300) * 100) + 5);
+
+  // Simulate a reset every 30 "mock minutes" for demonstration
+  // In real 5-minute fast mode, this means about 2.5 minutes between resets
+  const mockCycleMinutes = 30;
+  const minutesIntoCycle = minutesSinceReset % mockCycleMinutes;
+
+  if (minutesIntoCycle < 5) {
+    // Just reset - low percentage
+    return 3 + Math.floor(Math.random() * 5);
+  } else if (minutesIntoCycle > 25) {
+    // About to reset - high percentage
+    return 80 + Math.floor(Math.random() * 15);
+  } else {
+    // Middle of block - moderate percentage
+    return 30 + Math.floor((minutesIntoCycle / mockCycleMinutes) * 40);
+  }
+}
+
+async function getBlockPercentage(): Promise<number | null> {
+  if (mockMode) {
+    return getMockBlockPercentage();
+  }
+
+  const response = await fetchGLMQuota();
   if ("error" in response) {
     console.error(`API error: ${response.error}`);
     return null;
   }
-
-  const blockLimit = response.limits.find((limit) => limit.type === "Token usage(5 Hour)");
+  if (!response.limits || !Array.isArray(response.limits)) {
+    console.error(`API error: Invalid response structure (no limits array)`);
+    console.error(`Response was:`, JSON.stringify(response));
+    return null;
+  }
+  // API returns type "TOKENS_LIMIT" for the 5-hour block limit
+  const blockLimit = response.limits.find((limit) => limit.type === "TOKENS_LIMIT");
   return blockLimit?.percentage ?? null;
 }
 
-/**
- * Detect if a reset occurred based on percentage drop
- * A reset is detected when percentage drops by more than RESET_THRESHOLD_PERCENT
- */
 function detectReset(current: number | null, previous: number | null): boolean {
-  if (current === null || previous === null) {
-    return false;
-  }
-
-  // Reset detected if percentage dropped by more than threshold
-  const drop = previous - current;
-  return drop > RESET_THRESHOLD_PERCENT;
+  if (current === null || previous === null) return false;
+  return (previous - current) > RESET_THRESHOLD_PERCENT;
 }
 
 /**
- * Save partial results when interrupted
+ * Uses Bun.write for atomic file operations
  */
+async function saveResults(results: DetectionResults, filename: string): Promise<void> {
+  try {
+    const path = `${import.meta.dir}/${filename}`;
+    await write(path, JSON.stringify(results, null, 2));
+    console.log(`\n💾 Results saved to: ${path}`);
+  } catch (error) {
+    console.error(`\n❌ Failed to save: ${(error as Error).message}`);
+  }
+}
+
 async function savePartialResults(): Promise<void> {
-  if (partialResults.length === 0) {
-    console.log("\n\n⚠️  No data collected to save.");
-    return;
-  }
-
-  console.log("\n\n⚠️  Interrupted! Saving partial results...");
-
+  if (partialResults.length === 0) return;
+  console.log("\n\n⚠️ Interrupted! Saving partial results...");
   const analysis = analyzeResets(partialResults);
-  const outputPath = new URL("block-times.json", import.meta.url);
-  await saveResults(analysis, outputPath.pathname);
-
-  console.log("\n✨ Partial results saved.");
+  await saveResults(analysis, "block-times.json");
 }
 
 /**
- * Handle Ctrl+C (SIGINT) to save partial results
+ * Bun still uses process.on for signals, which is fine!
  */
-function setupSignalHandler(): void {
-  process.on("SIGINT", async () => {
-    if (isPolling) {
-      await savePartialResults();
-    }
-    process.exit(0);
-  });
-}
+process.on("SIGINT", async () => {
+  if (isPolling) await savePartialResults();
+  process.exit(0);
+});
 
-/**
- * Poll the API for block percentage over time
- */
 async function pollForResets(durationHours: number): Promise<PollResult[]> {
   const results: PollResult[] = [];
   partialResults = results;
   isPolling = true;
 
-  const duration = durationHours * 60 * 60 * 1000;
+  const durationMs = durationHours * 60 * 60 * 1000;
   const startTime = Date.now();
-  const endTime = startTime + duration;
-
-  console.log(`\n🔍 Starting block time detection...`);
-  console.log(`   Duration: ${durationHours} hours`);
-  console.log(`   Poll interval: ${POLL_INTERVAL_MS / 60 / 1000} minutes`);
-  console.log(`   Expected polls: ~${Math.floor(duration / POLL_INTERVAL_MS)}`);
-  console.log(`\nPress Ctrl+C to stop early and save results.\n`);
+  const endTime = startTime + durationMs;
 
   let previousPercentage: number | null = null;
   let pollCount = 0;
 
   while (Date.now() < endTime) {
     pollCount++;
-
     const now = new Date();
     const timestamp = now.toISOString();
 
-    // Show progress
-    const elapsed = Date.now() - startTime;
-    const progress = ((elapsed / duration) * 100).toFixed(1);
+    const progress = (((Date.now() - startTime) / durationMs) * 100).toFixed(1);
     process.stdout.write(`\r[${progress}%] Poll #${pollCount}: ${timestamp.split("T")[1].slice(0, 8)} `);
 
     const percentage = await getBlockPercentage();
 
     if (percentage !== null) {
       const isReset = detectReset(percentage, previousPercentage);
-
-      if (isReset) {
-        console.log(`\n🔄 RESET DETECTED! ${percentage}% (was ${previousPercentage}%)`);
-      } else if (previousPercentage === null) {
-        console.log(`\n📊 Initial: ${percentage}%`);
-      }
-
-      results.push({
-        timestamp,
-        percentage,
-        isReset,
-      });
-
+      if (isReset) console.log(`\n🔄 RESET DETECTED! ${percentage}%`);
+      
+      results.push({ timestamp, percentage, isReset });
       previousPercentage = percentage;
-    } else {
-      console.log(`\n⚠️  Failed to fetch percentage`);
     }
 
-    // Wait for next poll (unless we're done)
     if (Date.now() < endTime) {
-      await new Promise((resolve) => setTimeout(resolve, POLL_INTERVAL_MS));
+      // Bun.sleep is optimized for the event loop
+      const interval = mockMode ? MOCK_POLL_INTERVAL_MS : POLL_INTERVAL_MS;
+      await sleep(interval);
     }
   }
 
   isPolling = false;
-  console.log(`\n\n✅ Polling complete. Collected ${results.length} data points.`);
   return results;
 }
 
-/**
- * Analyze poll results to find block offset from 5-hour boundaries
- */
 function analyzeResets(results: PollResult[]): DetectionResults {
   const resetEvents = results.filter((r) => r.isReset);
-
+  
   if (resetEvents.length === 0) {
-    console.warn("\n⚠️  No resets detected during polling period.");
-    console.warn("   This could mean:");
-    console.warn("   - The polling period was too short");
-    console.warn("   - Blocks reset at different times than expected");
-    console.warn("   - API quota wasn't being used during the period");
-
     return {
       detectedResets: [],
       blockOffsetMinutes: 0,
@@ -206,105 +217,54 @@ function analyzeResets(results: PollResult[]): DetectionResults {
     };
   }
 
-  console.log(`\n📈 Analyzing ${resetEvents.length} reset events...`);
-
-  // Calculate offset from expected 5-hour boundaries
-  const offsets: number[] = [];
-
-  for (const reset of resetEvents) {
+  const offsets = resetEvents.map(reset => {
     const resetTime = new Date(reset.timestamp);
     const utcHour = resetTime.getUTCHours();
     const utcMinute = resetTime.getUTCMinutes();
-
-    // Find the nearest 5-hour boundary
-    let nearestBoundary = 0;
-
-    for (const boundary of FIVE_HOUR_BOUNDARIES) {
-      if (Math.abs(utcHour - boundary) <= BOUNDARY_WINDOW_HOURS) {
-        nearestBoundary = boundary;
-        break;
-      }
-    }
-
-    // Calculate offset in minutes
-    const hourDiff = utcHour - nearestBoundary;
-    const offsetMinutes = hourDiff * 60 + utcMinute;
-    offsets.push(offsetMinutes);
-
-    console.log(`   ${reset.timestamp.slice(0, 16)}Z -> offset: ${offsetMinutes} min from ${nearestBoundary}:00`);
-  }
-
-  // Calculate median offset
-  const sortedOffsets = [...offsets].sort((a, b) => a - b);
-  const medianOffset = sortedOffsets[Math.floor(sortedOffsets.length / 2)];
-
-  // Generate suggested schedule
-  const suggestedSchedule = FIVE_HOUR_BOUNDARIES.map((hour) => {
-    const totalMinutes = hour * 60 + medianOffset;
-    const scheduleHour = Math.floor(totalMinutes / 60) % 24;
-    const scheduleMinute = totalMinutes % 60;
-    return `${scheduleHour.toString().padStart(2, "0")}:${scheduleMinute.toString().padStart(2, "0")}`;
+    const nearestBoundary = FIVE_HOUR_BOUNDARIES.reduce((prev, curr) => 
+      Math.abs(curr - utcHour) < Math.abs(prev - utcHour) ? curr : prev
+    );
+    return (utcHour - nearestBoundary) * 60 + utcMinute;
   });
 
-  console.log(`\n🎯 Median offset: ${medianOffset} minutes`);
-  console.log(`📅 Suggested schedule: ${suggestedSchedule.join(", ")} UTC`);
+  const medianOffset = offsets.sort((a, b) => a - b)[Math.floor(offsets.length / 2)];
+  const suggestedSchedule = FIVE_HOUR_BOUNDARIES.map((hour) => {
+    const totalMinutes = hour * 60 + medianOffset;
+    return `${Math.floor(totalMinutes / 60).toString().padStart(2, "0")}:${(totalMinutes % 60).toString().padStart(2, "0")} UTC`;
+  });
 
   return {
     detectedResets: resetEvents.map((r) => r.timestamp),
     blockOffsetMinutes: medianOffset,
-    suggestedSchedule: suggestedSchedule.map((s) => `${s} UTC`),
+    suggestedSchedule,
     lastUpdated: new Date().toISOString(),
   };
 }
 
-/**
- * Save results to JSON file
- */
-async function saveResults(results: DetectionResults, filepath: string): Promise<void> {
-  try {
-    await writeFile(filepath, JSON.stringify(results, null, 2), "utf-8");
-    console.log(`\n💾 Results saved to: ${filepath}`);
-  } catch (error) {
-    console.error(`\n❌ Failed to save results: ${(error as Error).message}`);
-  }
-}
+async function main() {
+  // Parse command line arguments
+  const args = argv.slice(2);
+  let durationHours = 6; // default
 
-/**
- * Main entry point
- */
-async function main(): Promise<void> {
-  // Parse duration from CLI args
-  const hoursArg = process.argv[2];
-  const durationHours = hoursArg ? parseInt(hoursArg, 10) : 6;
-
-  if (isNaN(durationHours) || durationHours < 1) {
-    console.error("Error: Duration must be a positive number of hours");
-    console.error("Usage: bun run scripts/detect-block-times.ts [hours]");
-    process.exit(1);
+  for (const arg of args) {
+    if (arg === "--mock") {
+      mockMode = true;
+    } else if (!arg.startsWith("--")) {
+      durationHours = parseFloat(arg);
+    }
   }
 
-  console.log("\n╔════════════════════════════════════════════════════════╗");
-  console.log("║       GLM Block Time Detection Script                  ║");
-  console.log("╚════════════════════════════════════════════════════════╝");
+  if (mockMode) {
+    console.log("\n🧪 Running in MOCK mode (simulated API responses, 30s polling)");
+  }
 
-  // Setup signal handler for graceful exit
-  setupSignalHandler();
+  console.log("\n🚀 GLM Block Detection (Bun Native)");
+  console.log(`📊 Duration: ${durationHours} hour(s)`);
 
-  // Run polling
   const results = await pollForResets(durationHours);
-
-  // Analyze results
   const analysis = analyzeResets(results);
-
-  // Save to file
-  const outputPath = new URL("block-times.json", import.meta.url);
-  await saveResults(analysis, outputPath.pathname);
-
-  console.log("\n✨ Detection complete!");
+  await saveResults(analysis, mockMode ? "block-times-mock.json" : "block-times.json");
+  console.log("\n✨ Done.");
 }
 
-// Run the script
-main().catch((error) => {
-  console.error("\n❌ Fatal error:", error);
-  process.exit(1);
-});
+main();

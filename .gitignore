@@ -3,8 +3,8 @@ worktrees/
 
 # Build outputs
 dist/
+build/
 *.exe
-statusline-hyz-cc
 
 # Auto-generated memory files
 **/CLAUDE.md
