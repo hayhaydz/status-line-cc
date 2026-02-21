@@ -180,7 +180,7 @@ export interface WidgetResult {
 /**
  * Output format options
  */
-export type OutputFormat = "compact" | "detailed" | "minimal";
+export type OutputFormat = "compact" | "detailed" | "minimal" | "multiline";
 
 /**
  * Git status information

@@ -17,7 +17,7 @@ import { createBlockWidget } from "./widgets/block.ts";
 import { createGLMWidget } from "./widgets/glm.ts";
 import { createCacheWidget } from "./widgets/cache.ts";
 import { createWebSearchWidget } from "./widgets/websearch.ts";
-import type { ClaudeCodeInput, OutputFormat } from "./types.ts";
+import type { ClaudeCodeInput, OutputFormat, Config } from "./types.ts";
 import { error as logError } from "./util/logger.ts";
 import { handleCliCommand } from "./cli.ts";
 
@@ -68,21 +68,28 @@ async function readStdin(): Promise<string> {
 
 /**
  * Parse output format from input or config
+ *
+ * Returns the format and separator to use for widget rendering.
+ * Multi-line format uses newline separator with detailed format.
  */
-function parseOutputFormat(
+export function parseOutputFormat(
   input: ClaudeCodeInput,
   configFormat?: OutputFormat
-): OutputFormat {
+): { format: OutputFormat; separator: string } {
   // Check input output_style first
   if (input.output_style?.name) {
     const style = input.output_style.name.toLowerCase();
+    if (style === "multiline") {
+      return { format: "detailed", separator: "\n" };
+    }
     if (style === "compact" || style === "detailed" || style === "minimal") {
-      return style as OutputFormat;
+      return { format: style as OutputFormat, separator: " | " };
     }
   }
 
   // Fall back to config
-  return configFormat ?? "compact";
+  const format = configFormat ?? "compact";
+  return { format, separator: " | " };
 }
 
 /**
@@ -126,14 +133,14 @@ export async function main(): Promise<void> {
   configureLoggerFromConfig(config);
 
   // Parse output format
-  const format = parseOutputFormat(input, config.format);
+  const { format, separator } = parseOutputFormat(input, config.format);
 
   // Render all enabled widgets
   const output = await renderWidgets(
     input,
     config.widgets ?? {},
     format,
-    " | ", // separator between widgets
+    separator, // separator between widgets (newline for multiline, pipe for others)
     config // pass full config for widgets that need global settings
   );
 
