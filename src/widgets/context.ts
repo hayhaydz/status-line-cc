@@ -13,8 +13,10 @@ import { debug } from "../util/logger.js";
 import { extractModelId } from "../util/model.js";
 import { formatWidgetValue } from "../util/format.js";
 
-/** Default context icon (Nerd Font bolt) */
-const DEFAULT_ICON = "\uf0e7"; // nf-fa-bolt
+/** Default context icons */
+const DEFAULT_ICON = "\uf49b";      // Nerd Font: nf-mdi-flash
+const TEXT_CONTENT_ICON = "ctx:";  // Text mode
+const EMOJI_ICON = "⚡";            // Emoji: high voltage
 
 /** Context window limits (tokens) */
 const CONTEXT_LIMITS: Record<string, number> = {
@@ -139,6 +141,8 @@ function formatContext(
 export class ContextWidget extends BaseWidget {
   readonly name = "context";
   protected defaultIcon = DEFAULT_ICON;
+  protected textContentIcon = TEXT_CONTENT_ICON;
+  protected emojiIcon = EMOJI_ICON;
 
   async render(input: ClaudeCodeInput, config: WidgetConfig, globalConfig?: Config): Promise<string> {
     const transcriptPath = input.transcript_path;
@@ -158,7 +162,7 @@ export class ContextWidget extends BaseWidget {
 
     const percent = calculatePercentage(used, limit);
 
-    const icon = this.getIcon(config);
+    const icon = this.getIcon(config, globalConfig);
     return formatContext(percent, config, icon);
   }
 }

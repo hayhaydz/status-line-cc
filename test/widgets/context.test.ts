@@ -43,7 +43,7 @@ describe("ContextWidget", () => {
     const widget = new ContextWidget();
     const result = await widget.render(input, { format: "compact" });
 
-    expect(result).toContain("\uf0e7"); // nf-fa-bolt icon
+    expect(result).toContain("\uf49b"); // nf-mdi-flash icon
     expect(result).toContain("%");
   });
 
@@ -184,7 +184,7 @@ describe("ContextWidget", () => {
       });
 
       // Should contain progress bar, icon, and percentage
-      expect(result).toContain("\uf0e7"); // icon
+      expect(result).toContain("\uf49b"); // icon
       expect(result).toMatch(/\[.*\]/); // progress bar
       expect(result).toContain("%"); // percentage
     });
