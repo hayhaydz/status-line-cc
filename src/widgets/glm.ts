@@ -11,8 +11,10 @@ import { getGLMQuota as fetchGLMQuotaRaw } from "../util/glm-api.ts";
 import { debug } from "../util/logger.ts";
 import { formatWidgetValueSimple } from "../util/format.ts";
 
-/** Default quota icon (Nerd Font pie chart) */
-const DEFAULT_ICON = "\uf200"; // nf-cod-pie
+/** Default quota icons */
+const DEFAULT_ICON = "\u{f0a9e}";      // Nerd Font: nf-mdi-chart_bar
+const TEXT_CONTENT_ICON = "quota:";    // Text mode
+const EMOJI_ICON = "📊";                // Emoji: bar chart
 
 /**
  * Map raw API response to simplified GLMQuotaResponse
@@ -63,12 +65,14 @@ function formatQuota(
 export class GLMWidget extends BaseWidget {
   readonly name = "glm";
   protected defaultIcon = DEFAULT_ICON;
+  protected textContentIcon = TEXT_CONTENT_ICON;
+  protected emojiIcon = EMOJI_ICON;
 
   async render(input: ClaudeCodeInput, config: WidgetConfig, globalConfig?: Config): Promise<string> {
     const raw = await fetchGLMQuotaRaw(globalConfig);
     const quota = mapQuotaResponse(raw);
 
-    const icon = this.getIcon(config);
+    const icon = this.getIcon(config, globalConfig);
     return formatQuota(quota, config, icon);
   }
 }
