@@ -160,6 +160,35 @@ interface ClaudeCodeInput {
 
 ---
 
+## Configuration
+
+```json
+{
+  "enabled": true,
+  "format": "compact",
+  "iconMode": "nerdfont",
+  "theme": "nord",
+  "widgets": {
+    "git": { "enabled": true },
+    "model": { "enabled": true }
+  }
+}
+```
+
+### Icon Modes
+
+- `nerdfont` (default): Nerd Font icons - requires patched font
+- `emoji`: Unicode emoji - works in most terminals
+- `text`: Plain text labels - maximum compatibility
+
+### Themes
+
+- `nord` (default): Subtle cool tones
+- `tokyonight`: Blue/cyan palette
+- `monochrome`: No colors
+
+---
+
 ## Claude Code Configuration
 
 Install and enable:

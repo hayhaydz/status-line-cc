@@ -1,0 +1,41 @@
+{
+  "enabled": true,
+  "format": "compact",
+  "iconMode": "nerdfont",
+  "theme": "nord",
+  "verbose": false,
+  "widgets": {
+    "git": {
+      "enabled": true,
+      "format": "compact"
+    },
+    "model": {
+      "enabled": true,
+      "format": "compact"
+    },
+    "context": {
+      "enabled": true,
+      "format": "compact"
+    },
+    "block": {
+      "enabled": true,
+      "format": "compact"
+    },
+    "concurrency": {
+      "enabled": true,
+      "format": "compact"
+    },
+    "glm": {
+      "enabled": true,
+      "format": "compact"
+    },
+    "cache": {
+      "enabled": true,
+      "format": "compact"
+    },
+    "websearch": {
+      "enabled": false,
+      "format": "compact"
+    }
+  }
+}
