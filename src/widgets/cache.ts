@@ -8,8 +8,10 @@
 import type { Widget, WidgetConfig, ClaudeCodeInput, Config } from "../types.js";
 import { BaseWidget } from "../widget.js";
 
-/** Default cache icon (Nerd Font lightning) */
-const DEFAULT_ICON = "\uf0e7"; // nf-fa-bolt
+/** Default cache icons */
+const DEFAULT_ICON = "\uf47a";      // Nerd Font: nf-mdi-cache (different from context!)
+const TEXT_CONTENT_ICON = "cache:"; // Text mode
+const EMOJI_ICON = "💾";            // Emoji: floppy disk
 
 /**
  * Extract cached tokens from input
@@ -40,6 +42,8 @@ function formatCachedTokens(tokens: number): string {
 export class CacheWidget extends BaseWidget {
   readonly name = "cache";
   protected defaultIcon = DEFAULT_ICON;
+  protected textContentIcon = TEXT_CONTENT_ICON;
+  protected emojiIcon = EMOJI_ICON;
 
   async render(input: ClaudeCodeInput, config: WidgetConfig, globalConfig?: Config): Promise<string> {
     const cached = extractCachedTokens(input);
@@ -48,7 +52,7 @@ export class CacheWidget extends BaseWidget {
       return "";
     }
 
-    const icon = this.getIcon(config);
+    const icon = this.getIcon(config, globalConfig);
     const format = config.format ?? "compact";
 
     const formatted = formatCachedTokens(cached);

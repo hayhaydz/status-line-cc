@@ -84,7 +84,7 @@ describe("CacheWidget", () => {
     const widget = new CacheWidget();
     const result = await widget.render(input, { format: "compact" });
 
-    expect(result).toContain("\uf0e7"); // nf-fa-bolt icon
+    expect(result).toContain("\uf47a"); // nf-mdi-cache icon
     expect(result).toContain("5.0k");
   });
 });
