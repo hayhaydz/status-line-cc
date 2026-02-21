@@ -164,6 +164,32 @@ export abstract class BaseWidget implements Widget {
     }
   }
 
+  /**
+   * Get theme color for this widget
+   */
+  protected getWidgetColor(globalConfig?: Config): number | null {
+    const themeName = globalConfig?.theme ?? "nord";
+    const { getWidgetColor } = require("../themes/index.js");
+    return getWidgetColor(themeName, this.name);
+  }
+
+  /**
+   * Format text with widget color
+   */
+  protected formatWithColor(
+    text: string,
+    globalConfig?: Config
+  ): string {
+    const colorCode = this.getWidgetColor(globalConfig);
+
+    if (!colorCode || colorCode === 0) {
+      return text;
+    }
+
+    const { color } = require("../util/ansi.js");
+    return color(text, colorCode);
+  }
+
   abstract render(input: ClaudeCodeInput, config: WidgetConfig, globalConfig?: Config): Promise<string>;
 }
 
