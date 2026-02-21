@@ -8,6 +8,7 @@
 import type { Widget, WidgetConfig, ClaudeCodeInput, Config } from "../types.js";
 import { BaseWidget } from "../widget.js";
 import { extractModelId } from "../util/model.js";
+import { formatWidgetValue } from "../util/format.js";
 
 /** Default concurrency icon (Nerd Font sync) */
 const DEFAULT_ICON = "\uf046"; // nf-cod-sync
@@ -30,15 +31,10 @@ function formatConcurrency(
   config: WidgetConfig,
   icon: string
 ): string {
-  const format = config.format ?? "compact";
-
-  if (format === "minimal") {
-    return String(concurrency);
-  }
-
-  const label = format === "detailed" ? "concurrency" : "conc";
-
-  return `${icon}${label}:${concurrency}`;
+  return formatWidgetValue(String(concurrency), icon, config, {
+    short: "conc",
+    long: "concurrency",
+  });
 }
 
 /**
