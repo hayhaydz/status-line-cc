@@ -9,7 +9,7 @@
  * --status            Show current status (global + project)
  */
 
-import { mkdir, writeFile, readFile, existsSync } from "node:fs/promises";
+import { mkdir, writeFile, readFile } from "node:fs/promises";
 import { join } from "node:path";
 import { existsSync as existsSyncSync } from "node:fs";
 
