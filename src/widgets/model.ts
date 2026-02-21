@@ -8,6 +8,7 @@
 import type { Widget, WidgetConfig, ClaudeCodeInput, Config } from "../types.js";
 import { BaseWidget } from "../widget.js";
 import { getWidgetConfig } from "../config.js";
+import { extractModelId } from "../util/model.js";
 
 /** Default model icon (Nerd Font robot) */
 const DEFAULT_ICON = "\uf1b4"; // nf-fa-robot
@@ -23,21 +24,6 @@ const MODEL_NAMES: Record<string, string> = {
   "glm-5": "GLM-5",
   "glm-4.5-air": "GLM-4.5-air",
 };
-
-/**
- * Extract model ID from input
- */
-function extractModelId(input: ClaudeCodeInput): string | undefined {
-  if (!input.model) {
-    return undefined;
-  }
-
-  if (typeof input.model === "string") {
-    return input.model;
-  }
-
-  return input.model.id;
-}
 
 /**
  * Get display name for model
