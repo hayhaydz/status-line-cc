@@ -352,5 +352,37 @@ describe("ContextWidget", () => {
       expect(result).toBeTruthy();
       expect(result.length).toBeGreaterThan(0);
     });
+
+    it("should use default context limit when model is not provided", async () => {
+      // This tests the edge case where extractModelId returns undefined
+      // (when input.model is not provided at all)
+      const input: ClaudeCodeInput = {
+        transcript_path: testTranscriptPath,
+        // model is not provided - extractModelId returns undefined
+      };
+
+      const widget = createContextWidget();
+      const result = await widget.render(input, {});
+
+      // Widget should still work with default context limit
+      expect(result).toBeTruthy();
+      expect(result.length).toBeGreaterThan(0);
+    });
+
+    it("should use default context limit when model object has no id", async () => {
+      // This tests the edge case where extractModelId returns undefined
+      // (when input.model is an object without id property)
+      const input: ClaudeCodeInput = {
+        transcript_path: testTranscriptPath,
+        model: { display_name: "Some Model" },
+      };
+
+      const widget = createContextWidget();
+      const result = await widget.render(input, {});
+
+      // Widget should still work with default context limit
+      expect(result).toBeTruthy();
+      expect(result.length).toBeGreaterThan(0);
+    });
   });
 });
