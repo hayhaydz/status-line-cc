@@ -10,8 +10,10 @@ import { BaseWidget } from "../widget.js";
 import { formatWidgetValue } from "../util/format.js";
 import { getTimeRemaining } from "../util/time.js";
 
-/** Default block icon (Nerd Font clock) */
-const DEFAULT_ICON = "\uf017"; // nf-fa-clock
+/** Default block icons */
+const DEFAULT_ICON = "\u{f19bb}";     // Nerd Font: nf-mdi-timer
+const TEXT_CONTENT_ICON = "block:";    // Text mode
+const EMOJI_ICON = "⏱️";                // Emoji: stopwatch
 
 /**
  * Format time remaining
@@ -60,11 +62,13 @@ function formatBlock(
 export class BlockWidget extends BaseWidget {
   readonly name = "block";
   protected defaultIcon = DEFAULT_ICON;
+  protected textContentIcon = TEXT_CONTENT_ICON;
+  protected emojiIcon = EMOJI_ICON;
 
   async render(input: ClaudeCodeInput, config: WidgetConfig, globalConfig?: Config): Promise<string> {
     const timeRemaining = getTimeRemaining(new Date());
 
-    const icon = this.getIcon(config);
+    const icon = this.getIcon(config, globalConfig);
     return formatBlock(timeRemaining, config, icon);
   }
 }
