@@ -62,10 +62,3 @@ export class CacheWidget extends BaseWidget {
     return `${icon}${formatted}`;
   }
 }
-
-/**
- * Create a cache widget instance
- */
-export function createCacheWidget(): Widget {
-  return new CacheWidget();
-}
