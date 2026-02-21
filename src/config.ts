@@ -51,8 +51,9 @@ const PROJECT_CONFIG_FILE = "config.json";
 
 /**
  * Deep merge two objects (destination takes precedence)
+ * Exported for testing
  */
-function deepMerge<T>(target: T, source: Partial<T>): T {
+export function deepMerge<T>(target: T, source: Partial<T>): T {
   const result = { ...target };
 
   for (const key of Object.keys(source) as Array<keyof T>) {
