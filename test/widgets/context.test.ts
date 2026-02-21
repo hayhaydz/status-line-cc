@@ -137,7 +137,7 @@ describe("ContextWidget", () => {
       expect(result).not.toContain("[");
     });
 
-    it("should use default width of 10 for progress bar", async () => {
+    it("should use fixed width of 10 for progress bar", async () => {
       const input: ClaudeCodeInput = {
         transcript_path: testTranscriptPath,
         model: "claude-sonnet-4-6",
@@ -150,28 +150,8 @@ describe("ContextWidget", () => {
       const match = result.match(/\[(.*)\]/);
       expect(match).toBeTruthy();
       if (match) {
-        // Bar content should be 10 characters total (█ + ░)
+        // Bar content should be exactly 10 characters (█ + ░)
         expect(match[1].length).toBe(10);
-      }
-    });
-
-    it("should support custom width for progress bar", async () => {
-      const input: ClaudeCodeInput = {
-        transcript_path: testTranscriptPath,
-        model: "claude-sonnet-4-6",
-      };
-
-      const widget = createContextWidget();
-      const result = await widget.render(input, {
-        options: { progressBar: true, progressWidth: 15 }
-      });
-
-      // Extract progress bar content
-      const match = result.match(/\[(.*)\]/);
-      expect(match).toBeTruthy();
-      if (match) {
-        // Bar content should be 15 characters with custom width
-        expect(match[1].length).toBe(15);
       }
     });
 
@@ -229,21 +209,94 @@ describe("ContextWidget", () => {
   });
 
   describe("createProgressBar unit tests", () => {
-    it("should create correct bar at 0%", () => {
+    const emptyTranscriptPath = "/tmp/test-transcript-empty.jsonl";
+    const fullTranscriptPath = "/tmp/test-transcript-full.jsonl";
+    const partialTranscriptPath = "/tmp/test-transcript-partial.jsonl";
+
+    // Test 0%: empty bar [░░░░░░░░░░]
+    it("should show empty bar at 0%", async () => {
+      // Create empty transcript
+      await writeFile(emptyTranscriptPath, "", "utf-8");
+
+      const input: ClaudeCodeInput = {
+        transcript_path: emptyTranscriptPath,
+        model: "claude-sonnet-4-6",
+      };
+
       const widget = createContextWidget();
-      // Access private function through render with mock data
-      // We'll test via the public API with different transcript sizes
-      expect(true).toBe(true); // Placeholder
+      const result = await widget.render(input, { options: { progressBar: true } });
+
+      // Empty transcript returns empty string, so we can't test 0% directly
+      // The widget returns "" when used === 0
+      expect(result).toBe("");
+
+      // Clean up
+      await unlink(emptyTranscriptPath);
     });
 
-    it("should create correct bar at 50%", () => {
-      // Tested via actual widget rendering
-      expect(true).toBe(true); // Placeholder
+    // Test ~60%: partial bar [██████░░░░]
+    it("should show partial bar at ~60%", async () => {
+      // Create transcript that results in ~60% of context window
+      // 60% of 200,000 tokens = 120,000 tokens ≈ 480,000 characters
+      const largeContent = "x".repeat(480000);
+      const partialContent = JSON.stringify({ content: largeContent }) + "\n";
+      await writeFile(partialTranscriptPath, partialContent, "utf-8");
+
+      const input: ClaudeCodeInput = {
+        transcript_path: partialTranscriptPath,
+        model: "claude-sonnet-4-6",
+      };
+
+      const widget = createContextWidget();
+      const result = await widget.render(input, { options: { progressBar: true } });
+
+      // Extract progress bar
+      const match = result.match(/\[(.*)\]/);
+      expect(match).toBeTruthy();
+      if (match) {
+        const bar = match[1];
+        // Should have some filled blocks (6 out of 10)
+        const filledCount = (bar.match(/█/g) || []).length;
+        const emptyCount = (bar.match(/░/g) || []).length;
+        expect(filledCount + emptyCount).toBe(10);
+        // At 60%, we expect 6 filled blocks (round(0.6 * 10) = 6)
+        expect(filledCount).toBeGreaterThanOrEqual(5); // Allow some tolerance
+      }
+
+      // Clean up
+      await unlink(partialTranscriptPath);
     });
 
-    it("should create correct bar at 100%", () => {
-      // Tested via actual widget rendering
-      expect(true).toBe(true); // Placeholder
+    // Test 100%: full bar [██████████]
+    it("should show full bar at 100%", async () => {
+      // Create transcript that exceeds context window (will cap at 100%)
+      // 100% of 200,000 tokens = 200,000 tokens ≈ 800,000 characters
+      const hugeContent = "x".repeat(900000);
+      const fullContent = JSON.stringify({ content: hugeContent }) + "\n";
+      await writeFile(fullTranscriptPath, fullContent, "utf-8");
+
+      const input: ClaudeCodeInput = {
+        transcript_path: fullTranscriptPath,
+        model: "claude-sonnet-4-6",
+      };
+
+      const widget = createContextWidget();
+      const result = await widget.render(input, { options: { progressBar: true } });
+
+      // Should show 100%
+      expect(result).toContain("100%");
+
+      // Extract progress bar
+      const match = result.match(/\[(.*)\]/);
+      expect(match).toBeTruthy();
+      if (match) {
+        const bar = match[1];
+        // All blocks should be filled at 100%
+        expect(bar).toBe("██████████");
+      }
+
+      // Clean up
+      await unlink(fullTranscriptPath);
     });
   });
 

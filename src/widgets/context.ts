@@ -126,15 +126,12 @@ function formatContext(
   const format = config.format ?? "compact";
   const options = config.options ?? {};
   const showProgressBar = options.progressBar === true;
-  const progressWidth = typeof options.progressWidth === "number"
-    ? options.progressWidth
-    : 10;
 
   let result = "";
 
-  // Add progress bar if enabled
+  // Add progress bar if enabled (fixed width of 10 characters)
   if (showProgressBar) {
-    result += createProgressBar(tokenPercent, progressWidth);
+    result += createProgressBar(tokenPercent, 10);
   }
 
   if (format === "minimal") {
