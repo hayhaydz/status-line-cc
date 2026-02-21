@@ -10,8 +10,10 @@ import { BaseWidget } from "../widget.js";
 import { extractModelId } from "../util/model.js";
 import { formatWidgetValue } from "../util/format.js";
 
-/** Default concurrency icon (Nerd Font sync) */
-const DEFAULT_ICON = "\uf046"; // nf-cod-sync
+/** Default concurrency icons */
+const DEFAULT_ICON = "\u{f015}";      // Nerd Font: nf-cod-three_bars
+const TEXT_CONTENT_ICON = "conc:";     // Text mode
+const EMOJI_ICON = "⚙️";                // Emoji: gear
 
 /** Default concurrency limit */
 const DEFAULT_CONCURRENCY = 5;
@@ -43,6 +45,8 @@ function formatConcurrency(
 export class ConcurrencyWidget extends BaseWidget {
   readonly name = "concurrency";
   protected defaultIcon = DEFAULT_ICON;
+  protected textContentIcon = TEXT_CONTENT_ICON;
+  protected emojiIcon = EMOJI_ICON;
 
   async render(input: ClaudeCodeInput, config: WidgetConfig, globalConfig?: Config): Promise<string> {
     const modelId = extractModelId(input);
@@ -53,7 +57,7 @@ export class ConcurrencyWidget extends BaseWidget {
 
     const concurrency = getConcurrencyLimit(modelId, globalConfig);
 
-    const icon = this.getIcon(config);
+    const icon = this.getIcon(config, globalConfig);
     return formatConcurrency(concurrency, config, icon);
   }
 }
