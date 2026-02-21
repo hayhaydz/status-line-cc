@@ -7,7 +7,9 @@ A lightweight, custom Claude Code CLI status line for GLM Coding Plan users.
 - **Git Status** - Branch name with staged/modified file counts
 - **Model Display** - Shows model name with concurrency multiplier
 - **Concurrency** - Displays current model's concurrency limit
-- **Context** - Token usage percentage from transcript parsing
+- **Context** - Token usage percentage from transcript parsing (with optional progress bar)
+- **Cached Tokens** - Shows cache read/write token usage
+- **Web Search Limit** - MCP/web search quota from GLM API
 - **Block Time** - 5-hour GLM block time remaining (fixed UTC schedule)
 - **GLM Quota** - Real-time quota percentage from API
 
@@ -104,6 +106,7 @@ Configuration is loaded in this priority order:
 | `compact` | Short labels, compact spacing (default) |
 | `detailed` | Full labels, more spacing |
 | `minimal` | Icons only, minimal spacing |
+| `multiline` | Multi-line output with detailed format (newline separator) |
 
 ### Widget Configuration
 
@@ -116,9 +119,44 @@ Each widget can be configured individually:
       "enabled": true,
       "icon": "",
       "format": "compact"
+    },
+    "context": {
+      "enabled": true,
+      "options": {
+        "progressBar": true
+      }
+    },
+    "cache": {
+      "enabled": true,
+      "format": "compact"
+    },
+    "websearch": {
+      "enabled": true,
+      "format": "compact"
     }
   }
 }
+```
+
+### CLI Commands
+
+The statusline includes CLI commands for easy configuration:
+
+```bash
+# Show help
+./statusline-hyz-cc --help
+
+# Enable statusline globally
+./statusline-hyz-cc --enable
+
+# Disable statusline globally
+./statusline-hyz-cc --disable
+
+# Disable statusline for current project
+./statusline-hyz-cc --project-disable
+
+# Show current status
+./statusline-hyz-cc --status
 ```
 
 ## Development
@@ -132,6 +170,9 @@ bun run build
 
 # Run tests
 bun test
+
+# Detect block reset times (requires GLM API credentials)
+bun run scripts/detect-block-times.ts [hours]
 ```
 
 ## Architecture
@@ -144,6 +185,48 @@ stdin (JSON from Claude Code)
   → format output
   → stdout (status line)
 ```
+
+## Widgets
+
+### Context Widget
+
+Shows token usage percentage calculated from transcript file parsing. Supports an optional progress bar visualization:
+
+```json
+{
+  "widgets": {
+    "context": {
+      "options": {
+        "progressBar": true
+      }
+    }
+  }
+}
+```
+
+Progress bar example: `[██████░░░░] 60%`
+
+### Cached Tokens Widget
+
+Displays the sum of cache creation and cache read tokens from `context_window.current_usage`. Formats large numbers with "k" suffix (e.g., "5.0k").
+
+### Web Search Limit Widget
+
+Shows MCP/web search quota from GLM API. Displays percentage of monthly usage for search-prime and web-reader tools.
+
+### Block Time Detection Script
+
+The `scripts/detect-block-times.ts` script empirically detects GLM 5-hour block reset times by polling the API and detecting significant percentage drops.
+
+Usage:
+```bash
+bun run scripts/detect-block-times.ts [hours]
+```
+
+Results are saved to `scripts/block-times.json` with:
+- Detected reset timestamps
+- Calculated offset from 5-hour boundaries
+- Suggested schedule for block times
 
 ## License
 
