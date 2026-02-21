@@ -9,14 +9,14 @@
 import { loadConfig } from "./config.ts";
 import { configureFromConfig as configureLoggerFromConfig } from "./util/logger.ts";
 import { registerWidget, renderWidgets } from "./widget.ts";
-import { createGitWidget } from "./widgets/git.ts";
-import { createModelWidget } from "./widgets/model.ts";
-import { createConcurrencyWidget } from "./widgets/concurrency.ts";
-import { createContextWidget } from "./widgets/context.ts";
-import { createBlockWidget } from "./widgets/block.ts";
-import { createGLMWidget } from "./widgets/glm.ts";
-import { createCacheWidget } from "./widgets/cache.ts";
-import { createWebSearchWidget } from "./widgets/websearch.ts";
+import { GitWidget } from "./widgets/git.ts";
+import { ModelWidget } from "./widgets/model.ts";
+import { ConcurrencyWidget } from "./widgets/concurrency.ts";
+import { ContextWidget } from "./widgets/context.ts";
+import { BlockWidget } from "./widgets/block.ts";
+import { GLMWidget } from "./widgets/glm.ts";
+import { CacheWidget } from "./widgets/cache.ts";
+import { WebSearchWidget } from "./widgets/websearch.ts";
 import type { ClaudeCodeInput, OutputFormat, Config } from "./types.ts";
 import { error as logError } from "./util/logger.ts";
 import { handleCliCommand } from "./cli.ts";
@@ -25,14 +25,14 @@ import { handleCliCommand } from "./cli.ts";
  * Register all available widgets
  */
 function registerAllWidgets(): void {
-  registerWidget(createGitWidget());
-  registerWidget(createModelWidget());
-  registerWidget(createConcurrencyWidget());
-  registerWidget(createContextWidget());
-  registerWidget(createBlockWidget());
-  registerWidget(createGLMWidget());
-  registerWidget(createCacheWidget());
-  registerWidget(createWebSearchWidget());
+  registerWidget(new GitWidget());
+  registerWidget(new ModelWidget());
+  registerWidget(new ConcurrencyWidget());
+  registerWidget(new ContextWidget());
+  registerWidget(new BlockWidget());
+  registerWidget(new GLMWidget());
+  registerWidget(new CacheWidget());
+  registerWidget(new WebSearchWidget());
 }
 
 /**

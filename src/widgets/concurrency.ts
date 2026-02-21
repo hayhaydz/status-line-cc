@@ -57,10 +57,3 @@ export class ConcurrencyWidget extends BaseWidget {
     return formatConcurrency(concurrency, config, icon);
   }
 }
-
-/**
- * Create a concurrency widget instance
- */
-export function createConcurrencyWidget(): Widget {
-  return new ConcurrencyWidget();
-}
