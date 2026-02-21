@@ -7,7 +7,7 @@
 
 import { readFile } from "node:fs/promises";
 import { existsSync } from "node:fs";
-import type { Widget, WidgetConfig, ClaudeCodeInput } from "../types.js";
+import type { Widget, WidgetConfig, ClaudeCodeInput, Config } from "../types.js";
 import { BaseWidget } from "../widget.js";
 import { debug } from "../util/logger.js";
 
@@ -124,7 +124,7 @@ export class ContextWidget extends BaseWidget {
   readonly name = "context";
   protected defaultIcon = DEFAULT_ICON;
 
-  async render(input: ClaudeCodeInput, config: WidgetConfig): Promise<string> {
+  async render(input: ClaudeCodeInput, config: WidgetConfig, globalConfig?: Config): Promise<string> {
     const transcriptPath = input.transcript_path;
 
     if (!transcriptPath) {

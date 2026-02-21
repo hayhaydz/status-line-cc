@@ -4,7 +4,7 @@
  * Provides the Widget interface, registry, and rendering orchestration.
  */
 
-import type { Widget, WidgetConfig, WidgetResult, ClaudeCodeInput, OutputFormat } from "./types.js";
+import type { Widget, WidgetConfig, WidgetResult, ClaudeCodeInput, OutputFormat, Config } from "./types.js";
 import { configureFromConfig, debug, error as logError } from "./util/logger.js";
 
 /** Widget registry */
@@ -46,7 +46,8 @@ export async function renderWidget(
   widget: Widget,
   input: ClaudeCodeInput,
   config: WidgetConfig,
-  format: OutputFormat
+  format: OutputFormat,
+  globalConfig?: Config
 ): Promise<WidgetResult> {
   const startTime = performance.now();
 
@@ -61,7 +62,7 @@ export async function renderWidget(
     }
 
     // Render the widget
-    const output = await widget.render(input, { ...config, format });
+    const output = await widget.render(input, { ...config, format }, globalConfig);
 
     return {
       name: widget.name,
@@ -89,12 +90,12 @@ export async function renderWidgets(
   input: ClaudeCodeInput,
   widgetConfigs: Record<string, WidgetConfig>,
   format: OutputFormat,
-  separator = " | "
+  separator = " | ",
+  globalConfig?: Config
 ): Promise<string> {
-  // Configure logger from the first widget config (for verbose mode)
-  const firstConfig = Object.values(widgetConfigs)[0];
-  if (firstConfig && "verbose" in firstConfig) {
-    configureFromConfig({ verbose: (firstConfig as { verbose?: boolean }).verbose });
+  // Configure logger from global config (for verbose mode)
+  if (globalConfig) {
+    configureFromConfig(globalConfig);
   }
 
   const widgets = getAllWidgets();
@@ -113,7 +114,7 @@ export async function renderWidgets(
   // Render all widgets concurrently
   const results = await Promise.all(
     enabledWidgets.map((widget) =>
-      renderWidget(widget, input, widgetConfigs[widget.name] ?? {}, format)
+      renderWidget(widget, input, widgetConfigs[widget.name] ?? {}, format, globalConfig)
     )
   );
 
@@ -147,7 +148,7 @@ export abstract class BaseWidget implements Widget {
     return config.icon ?? this.defaultIcon;
   }
 
-  abstract render(input: ClaudeCodeInput, config: WidgetConfig): Promise<string>;
+  abstract render(input: ClaudeCodeInput, config: WidgetConfig, globalConfig?: Config): Promise<string>;
 }
 
 /**

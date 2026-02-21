@@ -5,7 +5,7 @@
  * Block reset times: 00:00, 05:00, 10:00, 15:00, 20:00 UTC.
  */
 
-import type { Widget, WidgetConfig, ClaudeCodeInput } from "../types.js";
+import type { Widget, WidgetConfig, ClaudeCodeInput, Config } from "../types.js";
 import { BaseWidget } from "../widget.js";
 
 /** Default block icon (Nerd Font clock) */
@@ -115,7 +115,7 @@ export class BlockWidget extends BaseWidget {
   readonly name = "block";
   protected defaultIcon = DEFAULT_ICON;
 
-  async render(input: ClaudeCodeInput, config: WidgetConfig): Promise<string> {
+  async render(input: ClaudeCodeInput, config: WidgetConfig, globalConfig?: Config): Promise<string> {
     const timeRemaining = getTimeRemaining();
 
     const icon = this.getIcon(config);

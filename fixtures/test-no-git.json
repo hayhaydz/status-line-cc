@@ -1,0 +1,15 @@
+{
+  "cwd": "/tmp",
+  "session_id": "test-session-abc123",
+  "model": {
+    "id": "glm-4.7",
+    "display_name": "GLM-4.7"
+  },
+  "workspace": {
+    "current_dir": "/tmp",
+    "project_dir": "/tmp"
+  },
+  "context_window": {
+    "used_percentage": 45
+  }
+}

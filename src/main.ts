@@ -6,7 +6,8 @@
  * Reads JSON from stdin, renders widgets, outputs formatted status to stdout.
  */
 
-import { loadConfig, configureFromConfig as configureLoggerFromConfig } from "./config.ts";
+import { loadConfig } from "./config.ts";
+import { configureFromConfig as configureLoggerFromConfig } from "./util/logger.ts";
 import { registerWidget, renderWidgets } from "./widget.ts";
 import { createGitWidget } from "./widgets/git.ts";
 import { createModelWidget } from "./widgets/model.ts";
@@ -110,7 +111,8 @@ export async function main(): Promise<void> {
     input,
     config.widgets ?? {},
     format,
-    " | " // separator between widgets
+    " | ", // separator between widgets
+    config // pass full config for widgets that need global settings
   );
 
   // Write to stdout

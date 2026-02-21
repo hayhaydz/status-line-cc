@@ -25,7 +25,7 @@ export interface Widget {
   readonly name: string;
 
   /** Render the widget and return formatted string */
-  render(input: ClaudeCodeInput, config: WidgetConfig): Promise<string>;
+  render(input: ClaudeCodeInput, config: WidgetConfig, globalConfig?: Config): Promise<string>;
 
   /** Check if widget is enabled */
   isEnabled(config: WidgetConfig): boolean;

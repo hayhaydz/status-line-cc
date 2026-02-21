@@ -4,6 +4,10 @@ worktrees/
 # Build outputs
 dist/
 *.exe
+statusline-hyz-cc
+
+# Auto-generated memory files
+**/CLAUDE.md
 
 # Node modules
 node_modules/

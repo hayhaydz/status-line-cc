@@ -7,7 +7,7 @@
 
 import { execFile } from "node:child_process";
 import { promisify } from "node:util";
-import type { Widget, WidgetConfig, ClaudeCodeInput, GitStatus } from "../types.js";
+import type { Widget, WidgetConfig, ClaudeCodeInput, GitStatus, Config } from "../types.js";
 import { BaseWidget } from "../widget.js";
 import { debug } from "../util/logger.js";
 
@@ -113,7 +113,7 @@ export class GitWidget extends BaseWidget {
   readonly name = "git";
   protected defaultIcon = DEFAULT_ICON;
 
-  async render(input: ClaudeCodeInput, config: WidgetConfig): Promise<string> {
+  async render(input: ClaudeCodeInput, config: WidgetConfig, globalConfig?: Config): Promise<string> {
     const cwd = input.cwd ?? input.workspace?.current_dir ?? input.workspace?.project_dir;
 
     const status = await getGitStatus(cwd);

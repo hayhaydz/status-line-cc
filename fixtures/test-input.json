@@ -1,0 +1,44 @@
+{
+  "cwd": "/Users/hayhaydz/personal-coding/status-line-cc",
+  "session_id": "test-session-abc123",
+  "transcript_path": "/Users/hayhaydz/.claude/sessions/test-session-abc123/transcript.jsonl",
+  "model": {
+    "id": "glm-4.7",
+    "display_name": "GLM-4.7"
+  },
+  "workspace": {
+    "current_dir": "/Users/hayhaydz/personal-coding/status-line-cc",
+    "project_dir": "/Users/hayhaydz/personal-coding/status-line-cc"
+  },
+  "version": "1.0.80",
+  "output_style": {
+    "name": "default"
+  },
+  "cost": {
+    "total_cost_usd": 0.01234,
+    "total_duration_ms": 45000,
+    "total_api_duration_ms": 2300,
+    "total_lines_added": 156,
+    "total_lines_removed": 23
+  },
+  "context_window": {
+    "total_input_tokens": 15234,
+    "total_output_tokens": 4521,
+    "context_window_size": 200000,
+    "used_percentage": 8,
+    "remaining_percentage": 92,
+    "current_usage": {
+      "input_tokens": 8500,
+      "output_tokens": 1200,
+      "cache_creation_input_tokens": 5000,
+      "cache_read_input_tokens": 2000
+    }
+  },
+  "exceeds_200k_tokens": false,
+  "vim": {
+    "mode": "NORMAL"
+  },
+  "agent": {
+    "name": "security-reviewer"
+  }
+}
