@@ -51,18 +51,15 @@ export class CacheWidget extends BaseWidget {
     const icon = this.getIcon(config);
     const format = config.format ?? "compact";
 
-    if (format === "minimal") {
-      return formatCachedTokens(cached);
-    }
-
     const formatted = formatCachedTokens(cached);
 
-    // Detailed format includes icon, compact does not
-    if (format === "detailed") {
-      return `${icon}${formatted}`;
+    // Minimal format: number only
+    if (format === "minimal") {
+      return formatted;
     }
 
-    return formatted;
+    // Compact and detailed formats: icon + number
+    return `${icon}${formatted}`;
   }
 }
 

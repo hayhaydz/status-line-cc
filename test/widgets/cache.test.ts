@@ -52,7 +52,7 @@ describe("CacheWidget", () => {
     const widget = createCacheWidget();
     const result = await widget.render(input, {});
 
-    expect(result).toBe("700");
+    expect(result).toContain("700");
   });
 
   it("should show minimal format (number only)", async () => {
@@ -69,5 +69,22 @@ describe("CacheWidget", () => {
     const result = await widget.render(input, { format: "minimal" });
 
     expect(result).toBe("5.0k");
+  });
+
+  it("should show compact format with icon", async () => {
+    const input: ClaudeCodeInput = {
+      context_window: {
+        current_usage: {
+          cache_creation_input_tokens: 3000,
+          cache_read_input_tokens: 2000,
+        },
+      },
+    };
+
+    const widget = createCacheWidget();
+    const result = await widget.render(input, { format: "compact" });
+
+    expect(result).toContain("\uf0e7"); // nf-fa-bolt icon
+    expect(result).toContain("5.0k");
   });
 });
