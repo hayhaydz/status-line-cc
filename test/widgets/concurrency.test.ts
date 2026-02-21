@@ -3,7 +3,7 @@
  */
 
 import { describe, it, expect } from "bun:test";
-import { createConcurrencyWidget } from "../../src/widgets/concurrency.ts";
+import { ConcurrencyWidget } from "../../src/widgets/concurrency.ts";
 import type { ClaudeCodeInput, Config } from "../../src/types.ts";
 
 describe("ConcurrencyWidget", () => {
@@ -12,7 +12,7 @@ describe("ConcurrencyWidget", () => {
       model: "glm-4.7",
     };
 
-    const widget = createConcurrencyWidget();
+    const widget = new ConcurrencyWidget();
     const result = await widget.render(input, { format: "compact" });
 
     expect(result).toContain("\uf046"); // nf-cod-sync icon
@@ -25,7 +25,7 @@ describe("ConcurrencyWidget", () => {
       model: "glm-4.7",
     };
 
-    const widget = createConcurrencyWidget();
+    const widget = new ConcurrencyWidget();
     const result = await widget.render(input, { format: "minimal" });
 
     expect(result).toBe("5"); // default concurrency, number only
@@ -36,7 +36,7 @@ describe("ConcurrencyWidget", () => {
       model: "glm-4.7",
     };
 
-    const widget = createConcurrencyWidget();
+    const widget = new ConcurrencyWidget();
     const result = await widget.render(input, { format: "detailed" });
 
     expect(result).toContain("concurrency:");
@@ -46,7 +46,7 @@ describe("ConcurrencyWidget", () => {
   it("should return empty string when no model", async () => {
     const input: ClaudeCodeInput = {};
 
-    const widget = createConcurrencyWidget();
+    const widget = new ConcurrencyWidget();
     const result = await widget.render(input, {});
 
     expect(result).toBe("");
@@ -57,7 +57,7 @@ describe("ConcurrencyWidget", () => {
       model: "glm-4.7",
     };
 
-    const widget = createConcurrencyWidget();
+    const widget = new ConcurrencyWidget();
     const result = await widget.render(input, { icon: "\uf015" }); // nf-fa-home
 
     expect(result).toContain("\uf015");
@@ -68,7 +68,7 @@ describe("ConcurrencyWidget", () => {
       model: "glm-5",
     };
 
-    const widget = createConcurrencyWidget();
+    const widget = new ConcurrencyWidget();
     const result = await widget.render(input, {});
 
     expect(result).toBeTruthy();
@@ -80,7 +80,7 @@ describe("ConcurrencyWidget", () => {
       model: { id: "glm-4.7", display_name: "GLM-4.7" },
     };
 
-    const widget = createConcurrencyWidget();
+    const widget = new ConcurrencyWidget();
     const result = await widget.render(input, {});
 
     expect(result).toBeTruthy();
@@ -92,7 +92,7 @@ describe("ConcurrencyWidget", () => {
       model: { display_name: "Some Model" },
     };
 
-    const widget = createConcurrencyWidget();
+    const widget = new ConcurrencyWidget();
     const result = await widget.render(input, {});
 
     expect(result).toBe("");
@@ -110,7 +110,7 @@ describe("ConcurrencyWidget", () => {
         },
       };
 
-      const widget = createConcurrencyWidget();
+      const widget = new ConcurrencyWidget();
       const result = await widget.render(input, {}, globalConfig);
 
       expect(result).toContain("3");
@@ -127,7 +127,7 @@ describe("ConcurrencyWidget", () => {
         },
       };
 
-      const widget = createConcurrencyWidget();
+      const widget = new ConcurrencyWidget();
       const result = await widget.render(input, {}, globalConfig);
 
       expect(result).toContain("5"); // default
@@ -138,7 +138,7 @@ describe("ConcurrencyWidget", () => {
         model: "glm-5",
       };
 
-      const widget = createConcurrencyWidget();
+      const widget = new ConcurrencyWidget();
       const result = await widget.render(input, {});
 
       expect(result).toContain("5"); // default
@@ -154,7 +154,7 @@ describe("ConcurrencyWidget", () => {
         },
       };
 
-      const widget = createConcurrencyWidget();
+      const widget = new ConcurrencyWidget();
 
       const glm5Result = await widget.render({ model: "glm-5" }, {}, globalConfig);
       expect(glm5Result).toContain("3");

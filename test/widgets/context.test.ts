@@ -5,7 +5,7 @@
 import { describe, it, expect, beforeEach, afterEach } from "bun:test";
 import { writeFile, unlink } from "node:fs/promises";
 import { existsSync } from "node:fs";
-import { createContextWidget } from "../../src/widgets/context.ts";
+import { ContextWidget } from "../../src/widgets/context.ts";
 import type { ClaudeCodeInput } from "../../src/types.ts";
 
 describe("ContextWidget", () => {
@@ -40,7 +40,7 @@ describe("ContextWidget", () => {
       model: "claude-sonnet-4-6",
     };
 
-    const widget = createContextWidget();
+    const widget = new ContextWidget();
     const result = await widget.render(input, { format: "compact" });
 
     expect(result).toContain("\uf0e7"); // nf-fa-bolt icon
@@ -53,7 +53,7 @@ describe("ContextWidget", () => {
       model: "claude-sonnet-4-6",
     };
 
-    const widget = createContextWidget();
+    const widget = new ContextWidget();
     const result = await widget.render(input, { format: "minimal" });
 
     expect(result).toMatch(/^\d+%$/);
@@ -65,7 +65,7 @@ describe("ContextWidget", () => {
       model: "claude-sonnet-4-6",
     };
 
-    const widget = createContextWidget();
+    const widget = new ContextWidget();
     const result = await widget.render(input, { format: "detailed" });
 
     expect(result).toContain("ctx:");
@@ -75,7 +75,7 @@ describe("ContextWidget", () => {
   it("should return empty string when no transcript path", async () => {
     const input: ClaudeCodeInput = {};
 
-    const widget = createContextWidget();
+    const widget = new ContextWidget();
     const result = await widget.render(input, {});
 
     expect(result).toBe("");
@@ -87,7 +87,7 @@ describe("ContextWidget", () => {
       model: "claude-sonnet-4-6",
     };
 
-    const widget = createContextWidget();
+    const widget = new ContextWidget();
     const result = await widget.render(input, {});
 
     expect(result).toBe("");
@@ -100,7 +100,7 @@ describe("ContextWidget", () => {
         model: "claude-sonnet-4-6",
       };
 
-      const widget = createContextWidget();
+      const widget = new ContextWidget();
       const result = await widget.render(input, { options: { progressBar: true } });
 
       // Progress bar should contain brackets
@@ -117,7 +117,7 @@ describe("ContextWidget", () => {
         model: "claude-sonnet-4-6",
       };
 
-      const widget = createContextWidget();
+      const widget = new ContextWidget();
       const result = await widget.render(input, { options: { progressBar: false } });
 
       // Should not contain progress bar brackets
@@ -130,7 +130,7 @@ describe("ContextWidget", () => {
         model: "claude-sonnet-4-6",
       };
 
-      const widget = createContextWidget();
+      const widget = new ContextWidget();
       const result = await widget.render(input, {});
 
       // Should not contain progress bar brackets by default
@@ -143,7 +143,7 @@ describe("ContextWidget", () => {
         model: "claude-sonnet-4-6",
       };
 
-      const widget = createContextWidget();
+      const widget = new ContextWidget();
       const result = await widget.render(input, { options: { progressBar: true } });
 
       // Extract progress bar content
@@ -161,7 +161,7 @@ describe("ContextWidget", () => {
         model: "claude-sonnet-4-6",
       };
 
-      const widget = createContextWidget();
+      const widget = new ContextWidget();
       const result = await widget.render(input, {
         format: "minimal",
         options: { progressBar: true }
@@ -177,7 +177,7 @@ describe("ContextWidget", () => {
         model: "claude-sonnet-4-6",
       };
 
-      const widget = createContextWidget();
+      const widget = new ContextWidget();
       const result = await widget.render(input, {
         format: "compact",
         options: { progressBar: true }
@@ -195,7 +195,7 @@ describe("ContextWidget", () => {
         model: "claude-sonnet-4-6",
       };
 
-      const widget = createContextWidget();
+      const widget = new ContextWidget();
       const result = await widget.render(input, {
         format: "detailed",
         options: { progressBar: true }
@@ -223,7 +223,7 @@ describe("ContextWidget", () => {
         model: "claude-sonnet-4-6",
       };
 
-      const widget = createContextWidget();
+      const widget = new ContextWidget();
       const result = await widget.render(input, { options: { progressBar: true } });
 
       // Empty transcript returns empty string, so we can't test 0% directly
@@ -247,7 +247,7 @@ describe("ContextWidget", () => {
         model: "claude-sonnet-4-6",
       };
 
-      const widget = createContextWidget();
+      const widget = new ContextWidget();
       const result = await widget.render(input, { options: { progressBar: true } });
 
       // Extract progress bar
@@ -280,7 +280,7 @@ describe("ContextWidget", () => {
         model: "claude-sonnet-4-6",
       };
 
-      const widget = createContextWidget();
+      const widget = new ContextWidget();
       const result = await widget.render(input, { options: { progressBar: true } });
 
       // Should show 100%
@@ -307,7 +307,7 @@ describe("ContextWidget", () => {
         model: "claude-opus-4-6",
       };
 
-      const widget = createContextWidget();
+      const widget = new ContextWidget();
       const result = await widget.render(input, {});
 
       expect(result).toBeTruthy();
@@ -320,7 +320,7 @@ describe("ContextWidget", () => {
         model: "claude-haiku-4-5-20251001",
       };
 
-      const widget = createContextWidget();
+      const widget = new ContextWidget();
       const result = await widget.render(input, {});
 
       expect(result).toBeTruthy();
@@ -333,7 +333,7 @@ describe("ContextWidget", () => {
         model: "unknown-model",
       };
 
-      const widget = createContextWidget();
+      const widget = new ContextWidget();
       const result = await widget.render(input, {});
 
       expect(result).toBeTruthy();
@@ -346,7 +346,7 @@ describe("ContextWidget", () => {
         model: { id: "claude-sonnet-4-6", display_name: "Claude Sonnet 4.6" },
       };
 
-      const widget = createContextWidget();
+      const widget = new ContextWidget();
       const result = await widget.render(input, {});
 
       expect(result).toBeTruthy();
@@ -361,7 +361,7 @@ describe("ContextWidget", () => {
         // model is not provided - extractModelId returns undefined
       };
 
-      const widget = createContextWidget();
+      const widget = new ContextWidget();
       const result = await widget.render(input, {});
 
       // Widget should still work with default context limit
@@ -377,7 +377,7 @@ describe("ContextWidget", () => {
         model: { display_name: "Some Model" },
       };
 
-      const widget = createContextWidget();
+      const widget = new ContextWidget();
       const result = await widget.render(input, {});
 
       // Widget should still work with default context limit

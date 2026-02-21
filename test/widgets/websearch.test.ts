@@ -3,7 +3,7 @@
  */
 
 import { describe, it, expect, beforeEach, afterEach } from "bun:test";
-import { createWebSearchWidget } from "../../src/widgets/websearch.ts";
+import { WebSearchWidget } from "../../src/widgets/websearch.ts";
 import type { ClaudeCodeInput, Config } from "../../src/types.ts";
 import { clearAll as clearCache } from "../../src/util/cache.ts";
 
@@ -64,7 +64,7 @@ describe("WebSearchWidget", () => {
       json: async () => mockData,
     } as Response);
 
-    const widget = createWebSearchWidget();
+    const widget = new WebSearchWidget();
     const input: ClaudeCodeInput = {};
     const config: Config = {
       glm: {
@@ -95,7 +95,7 @@ describe("WebSearchWidget", () => {
       json: async () => mockData,
     } as Response);
 
-    const widget = createWebSearchWidget();
+    const widget = new WebSearchWidget();
     const input: ClaudeCodeInput = {};
     const config: Config = {
       glm: {
@@ -125,7 +125,7 @@ describe("WebSearchWidget", () => {
       json: async () => mockData,
     } as Response);
 
-    const widget = createWebSearchWidget();
+    const widget = new WebSearchWidget();
     const input: ClaudeCodeInput = {};
     const config: Config = {
       glm: {
@@ -139,7 +139,7 @@ describe("WebSearchWidget", () => {
   });
 
   it("should return empty string when no auth token", async () => {
-    const widget = createWebSearchWidget();
+    const widget = new WebSearchWidget();
     const input: ClaudeCodeInput = {};
     const config: Config = {};
 
@@ -165,7 +165,7 @@ describe("WebSearchWidget", () => {
       json: async () => mockData,
     } as Response);
 
-    const widget = createWebSearchWidget();
+    const widget = new WebSearchWidget();
     const input: ClaudeCodeInput = {};
     const config: Config = {
       glm: {
@@ -195,7 +195,7 @@ describe("WebSearchWidget", () => {
       json: async () => mockData,
     } as Response);
 
-    const widget = createWebSearchWidget();
+    const widget = new WebSearchWidget();
     const input: ClaudeCodeInput = {};
     const config: Config = {
       glm: {
@@ -215,7 +215,7 @@ describe("WebSearchWidget", () => {
       status: 500,
     } as Response);
 
-    const widget = createWebSearchWidget();
+    const widget = new WebSearchWidget();
     const input: ClaudeCodeInput = {};
     const config: Config = {
       glm: {
@@ -245,7 +245,7 @@ describe("WebSearchWidget", () => {
       json: async () => mockData,
     } as Response);
 
-    const widget = createWebSearchWidget();
+    const widget = new WebSearchWidget();
     const input: ClaudeCodeInput = {};
     const config: Config = {
       glm: {

@@ -3,7 +3,7 @@
  */
 
 import { describe, it, expect } from "bun:test";
-import { createCacheWidget } from "../../src/widgets/cache.ts";
+import { CacheWidget } from "../../src/widgets/cache.ts";
 import type { ClaudeCodeInput } from "../../src/types.ts";
 
 describe("CacheWidget", () => {
@@ -24,7 +24,7 @@ describe("CacheWidget", () => {
       },
     };
 
-    const widget = createCacheWidget();
+    const widget = new CacheWidget();
     const result = await widget.render(input, {});
 
     expect(result).toContain("5.0k");
@@ -33,7 +33,7 @@ describe("CacheWidget", () => {
   it("should return empty string when no cache data", async () => {
     const input: ClaudeCodeInput = {};
 
-    const widget = createCacheWidget();
+    const widget = new CacheWidget();
     const result = await widget.render(input, {});
 
     expect(result).toBe("");
@@ -49,7 +49,7 @@ describe("CacheWidget", () => {
       },
     };
 
-    const widget = createCacheWidget();
+    const widget = new CacheWidget();
     const result = await widget.render(input, {});
 
     expect(result).toContain("700");
@@ -65,7 +65,7 @@ describe("CacheWidget", () => {
       },
     };
 
-    const widget = createCacheWidget();
+    const widget = new CacheWidget();
     const result = await widget.render(input, { format: "minimal" });
 
     expect(result).toBe("5.0k");
@@ -81,7 +81,7 @@ describe("CacheWidget", () => {
       },
     };
 
-    const widget = createCacheWidget();
+    const widget = new CacheWidget();
     const result = await widget.render(input, { format: "compact" });
 
     expect(result).toContain("\uf0e7"); // nf-fa-bolt icon
