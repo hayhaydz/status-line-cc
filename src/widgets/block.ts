@@ -68,10 +68,3 @@ export class BlockWidget extends BaseWidget {
     return formatBlock(timeRemaining, config, icon);
   }
 }
-
-/**
- * Create a block widget instance
- */
-export function createBlockWidget(): Widget {
-  return new BlockWidget();
-}
