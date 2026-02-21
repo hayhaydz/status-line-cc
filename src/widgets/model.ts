@@ -10,8 +10,10 @@ import { BaseWidget } from "../widget.js";
 import { getWidgetConfig } from "../config.js";
 import { extractModelId } from "../util/model.js";
 
-/** Default model icon (Nerd Font robot) */
-const DEFAULT_ICON = "\uf1b4"; // nf-fa-robot
+/** Default model icons */
+const DEFAULT_ICON = "\u{e26d}";      // Nerd Font: nf-seti-config
+const TEXT_CONTENT_ICON = "model:";    // Text mode
+const EMOJI_ICON = "🤖";                // Emoji: robot face
 
 /** Model display name mappings */
 const MODEL_NAMES: Record<string, string> = {
@@ -59,6 +61,8 @@ function formatModel(
 export class ModelWidget extends BaseWidget {
   readonly name = "model";
   protected defaultIcon = DEFAULT_ICON;
+  protected textContentIcon = TEXT_CONTENT_ICON;
+  protected emojiIcon = EMOJI_ICON;
 
   async render(input: ClaudeCodeInput, config: WidgetConfig, globalConfig?: Config): Promise<string> {
     const modelId = extractModelId(input);
@@ -70,7 +74,7 @@ export class ModelWidget extends BaseWidget {
     // Get multiplier from global config concurrency limits
     const multiplier = globalConfig?.concurrencyLimits?.[modelId] ?? 1;
 
-    const icon = this.getIcon(config);
+    const icon = this.getIcon(config, globalConfig);
     return formatModel(modelId, multiplier, config, icon);
   }
 }
