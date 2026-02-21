@@ -12,16 +12,7 @@
 import { mkdir, writeFile, readFile } from "node:fs/promises";
 import { join } from "node:path";
 import { existsSync as existsSyncSync } from "node:fs";
-
-/** Global config directory */
-const GLOBAL_CONFIG_DIR = join(
-  process.env.HOME || process.env.USERPROFILE || "~",
-  ".claude",
-  "statusline-hyz-cc"
-);
-
-/** Global config file path */
-const GLOBAL_CONFIG_PATH = join(GLOBAL_CONFIG_DIR, "config.json");
+import { GLOBAL_CONFIG_DIR, GLOBAL_CONFIG_PATH } from "./config.js";
 
 /** Project config file name */
 const PROJECT_CONFIG_FILE = ".statusline-hyz-cc.json";

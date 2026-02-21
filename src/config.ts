@@ -36,11 +36,18 @@ const DEFAULTS: Config = {
 };
 
 /** Global config file path */
-const GLOBAL_CONFIG_PATH = join(
+export const GLOBAL_CONFIG_PATH = join(
   process.env.HOME || process.env.USERPROFILE || "~",
   ".claude",
   "statusline-hyz-cc",
   "config.json"
+);
+
+/** Global config directory */
+export const GLOBAL_CONFIG_DIR = join(
+  process.env.HOME || process.env.USERPROFILE || "~",
+  ".claude",
+  "statusline-hyz-cc"
 );
 
 /** Project config directory name */
