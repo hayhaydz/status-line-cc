@@ -72,10 +72,3 @@ export class GLMWidget extends BaseWidget {
     return formatQuota(quota, config, icon);
   }
 }
-
-/**
- * Create a GLM widget instance
- */
-export function createGLMWidget(): Widget {
-  return new GLMWidget();
-}
