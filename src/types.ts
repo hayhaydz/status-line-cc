@@ -95,6 +95,9 @@ export interface Config {
   /** Global output format */
   format?: "compact" | "detailed" | "minimal";
 
+  /** Icon display mode */
+  iconMode?: IconMode;
+
   /** Enable debug logging */
   verbose?: boolean;
 
@@ -181,6 +184,9 @@ export interface WidgetResult {
  * Output format options
  */
 export type OutputFormat = "compact" | "detailed" | "minimal" | "multiline";
+
+/** Icon display mode */
+export type IconMode = "text" | "emoji" | "nerdfont";
 
 /**
  * Git status information
