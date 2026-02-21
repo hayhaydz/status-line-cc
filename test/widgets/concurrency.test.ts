@@ -15,7 +15,7 @@ describe("ConcurrencyWidget", () => {
     const widget = new ConcurrencyWidget();
     const result = await widget.render(input, { format: "compact" });
 
-    expect(result).toContain("\uf046"); // nf-cod-sync icon
+    expect(result).toContain("\uf015"); // nf-cod-three_bars icon
     expect(result).toContain("conc:");
     expect(result).toContain("5"); // default concurrency
   });
