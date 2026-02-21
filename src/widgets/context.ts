@@ -113,7 +113,8 @@ function createProgressBar(percentage: number): string {
 function formatContext(
   tokenPercent: number,
   config: WidgetConfig,
-  icon: string
+  icon: string,
+  colorFn?: (text: string) => string
 ): string {
   const format = config.format ?? "compact";
   const options = config.options ?? {};
@@ -126,7 +127,7 @@ function formatContext(
   const value = formatWidgetValue(`${tokenPercent}%`, icon, config, {
     short: "",
     long: "ctx",
-  });
+  }, colorFn);
 
   if (showProgressBar) {
     return `${progressBar} ${value}`;
@@ -163,6 +164,8 @@ export class ContextWidget extends BaseWidget {
     const percent = calculatePercentage(used, limit);
 
     const icon = this.getIcon(config, globalConfig);
-    return formatContext(percent, config, icon);
+    const colorFn = (text: string) => this.formatWithColor(text, globalConfig);
+
+    return formatContext(percent, config, icon, colorFn);
   }
 }

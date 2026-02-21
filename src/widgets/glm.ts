@@ -41,7 +41,8 @@ function mapQuotaResponse(raw: Awaited<ReturnType<typeof fetchGLMQuotaRaw>>): GL
 function formatQuota(
   quota: GLMQuotaResponse,
   config: WidgetConfig,
-  icon: string
+  icon: string,
+  colorFn?: (text: string) => string
 ): string {
   const format = config.format ?? "compact";
 
@@ -56,7 +57,7 @@ function formatQuota(
   const blockPercent = quota.blockUsage ?? 0;
 
   // Use simple format (icon + value, no label)
-  return formatWidgetValueSimple(`${blockPercent}%`, icon, config);
+  return formatWidgetValueSimple(`${blockPercent}%`, icon, config, colorFn);
 }
 
 /**
@@ -73,6 +74,8 @@ export class GLMWidget extends BaseWidget {
     const quota = mapQuotaResponse(raw);
 
     const icon = this.getIcon(config, globalConfig);
-    return formatQuota(quota, config, icon);
+    const colorFn = (text: string) => this.formatWithColor(text, globalConfig);
+
+    return formatQuota(quota, config, icon, colorFn);
   }
 }

@@ -38,21 +38,25 @@ function extractWebSearchQuota(quota: GLMQuotaLimit): {
 function formatWebSearchQuota(
   quota: { percentage: number; currentUsage: number; total: number },
   config: WidgetConfig,
-  icon: string
+  icon: string,
+  colorFn?: (text: string) => string
 ): string {
   const format = config.format ?? "compact";
   const { percentage, currentUsage, total } = quota;
 
   if (format === "minimal") {
-    return `${percentage}%`;
+    const result = `${percentage}%`;
+    return colorFn ? colorFn(result) : result;
   }
 
   if (format === "detailed") {
-    return `${icon}${percentage}% (${currentUsage}/${total})`;
+    const result = `${icon}${percentage}% (${currentUsage}/${total})`;
+    return colorFn ? colorFn(result) : result;
   }
 
   // Compact format (default)
-  return `${icon}${percentage}%`;
+  const result = `${icon}${percentage}%`;
+  return colorFn ? colorFn(result) : result;
 }
 
 /**
@@ -80,7 +84,8 @@ export class WebSearchWidget extends BaseWidget {
 
     const webSearchQuota = extractWebSearchQuota(mcpLimit);
     const icon = this.getIcon(config, globalConfig);
+    const colorFn = (text: string) => this.formatWithColor(text, globalConfig);
 
-    return formatWebSearchQuota(webSearchQuota, config, icon);
+    return formatWebSearchQuota(webSearchQuota, config, icon, colorFn);
   }
 }

@@ -31,28 +31,32 @@ export interface LabelOptions {
  * @param icon - Widget icon (e.g., "\uf017")
  * @param config - Widget configuration with format option
  * @param labels - Label options for short/long variants
+ * @param colorFn - Optional color function to apply colors
  * @returns Formatted string
  */
 export function formatWidgetValue(
   value: string,
   icon: string,
   config: WidgetConfig,
-  labels: LabelOptions
+  labels: LabelOptions,
+  colorFn?: (text: string) => string
 ): string {
   const format = config.format ?? "compact";
 
   if (format === "minimal") {
-    return value;
+    return colorFn ? colorFn(value) : value;
   }
 
   const label = format === "detailed" ? labels.long : labels.short;
 
   // If label is empty, omit the colon
   if (label === "") {
-    return `${icon}${value}`;
+    const result = `${icon}${value}`;
+    return colorFn ? colorFn(result) : result;
   }
 
-  return `${icon}${label}:${value}`;
+  const result = `${icon}${label}:${value}`;
+  return colorFn ? colorFn(result) : result;
 }
 
 /**
@@ -67,18 +71,21 @@ export function formatWidgetValue(
  * @param value - The formatted value string (e.g., "50%", "2h15m")
  * @param icon - Widget icon (e.g., "\uf017")
  * @param config - Widget configuration with format option
+ * @param colorFn - Optional color function to apply colors
  * @returns Formatted string
  */
 export function formatWidgetValueSimple(
   value: string,
   icon: string,
-  config: WidgetConfig
+  config: WidgetConfig,
+  colorFn?: (text: string) => string
 ): string {
   const format = config.format ?? "compact";
 
   if (format === "minimal") {
-    return value;
+    return colorFn ? colorFn(value) : value;
   }
 
-  return `${icon}${value}`;
+  const result = `${icon}${value}`;
+  return colorFn ? colorFn(result) : result;
 }

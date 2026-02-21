@@ -41,18 +41,20 @@ function formatModel(
   modelId: string,
   multiplier: number,
   config: WidgetConfig,
-  icon: string
+  icon: string,
+  colorFn?: (text: string) => string
 ): string {
   const format = config.format ?? "compact";
   const displayName = getDisplayName(modelId);
 
   if (format === "minimal") {
-    return displayName;
+    const result = displayName;
+    return colorFn ? colorFn(result) : result;
   }
 
   const multiplierSymbol = format === "detailed" ? `(${multiplier}×)` : `(${multiplier}x)`;
-
-  return `${icon}${displayName} ${multiplierSymbol}`;
+  const result = `${icon}${displayName} ${multiplierSymbol}`;
+  return colorFn ? colorFn(result) : result;
 }
 
 /**
@@ -75,6 +77,8 @@ export class ModelWidget extends BaseWidget {
     const multiplier = globalConfig?.concurrencyLimits?.[modelId] ?? 1;
 
     const icon = this.getIcon(config, globalConfig);
-    return formatModel(modelId, multiplier, config, icon);
+    const colorFn = (text: string) => this.formatWithColor(text, globalConfig);
+
+    return formatModel(modelId, multiplier, config, icon, colorFn);
   }
 }

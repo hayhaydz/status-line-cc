@@ -31,12 +31,13 @@ function getConcurrencyLimit(modelId: string, config?: Config): number {
 function formatConcurrency(
   concurrency: number,
   config: WidgetConfig,
-  icon: string
+  icon: string,
+  colorFn?: (text: string) => string
 ): string {
   return formatWidgetValue(String(concurrency), icon, config, {
     short: "conc",
     long: "concurrency",
-  });
+  }, colorFn);
 }
 
 /**
@@ -58,6 +59,8 @@ export class ConcurrencyWidget extends BaseWidget {
     const concurrency = getConcurrencyLimit(modelId, globalConfig);
 
     const icon = this.getIcon(config, globalConfig);
-    return formatConcurrency(concurrency, config, icon);
+    const colorFn = (text: string) => this.formatWithColor(text, globalConfig);
+
+    return formatConcurrency(concurrency, config, icon, colorFn);
   }
 }

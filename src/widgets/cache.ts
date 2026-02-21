@@ -54,15 +54,17 @@ export class CacheWidget extends BaseWidget {
 
     const icon = this.getIcon(config, globalConfig);
     const format = config.format ?? "compact";
+    const colorFn = (text: string) => this.formatWithColor(text, globalConfig);
 
     const formatted = formatCachedTokens(cached);
 
     // Minimal format: number only
     if (format === "minimal") {
-      return formatted;
+      return colorFn ? colorFn(formatted) : formatted;
     }
 
     // Compact and detailed formats: icon + number
-    return `${icon}${formatted}`;
+    const result = `${icon}${formatted}`;
+    return colorFn ? colorFn(result) : result;
   }
 }

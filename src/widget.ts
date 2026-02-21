@@ -6,6 +6,8 @@
 
 import type { Widget, WidgetConfig, WidgetResult, ClaudeCodeInput, OutputFormat, Config } from "./types.js";
 import { configureFromConfig, debug, error as logError } from "./util/logger.js";
+import { getWidgetColor as getThemeWidgetColor } from "./themes/index.js";
+import { color as ansiColor } from "./util/ansi.js";
 
 /** Widget registry */
 const widgetRegistry = new Map<string, Widget>();
@@ -168,9 +170,12 @@ export abstract class BaseWidget implements Widget {
    * Get theme color for this widget
    */
   protected getWidgetColor(globalConfig?: Config): number | null {
-    const themeName = globalConfig?.theme ?? "nord";
-    const { getWidgetColor } = require("../themes/index.js");
-    return getWidgetColor(themeName, this.name);
+    // Only apply colors when theme is explicitly set
+    const themeName = globalConfig?.theme;
+    if (!themeName) {
+      return null;
+    }
+    return getThemeWidgetColor(themeName, this.name);
   }
 
   /**
@@ -186,8 +191,7 @@ export abstract class BaseWidget implements Widget {
       return text;
     }
 
-    const { color } = require("../util/ansi.js");
-    return color(text, colorCode);
+    return ansiColor(text, colorCode);
   }
 
   abstract render(input: ClaudeCodeInput, config: WidgetConfig, globalConfig?: Config): Promise<string>;

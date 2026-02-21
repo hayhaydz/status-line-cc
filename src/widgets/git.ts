@@ -18,14 +18,6 @@ const DEFAULT_ICON = "\u{f02a2}";      // Nerd Font: nf-oct-git_branch
 const TEXT_CONTENT_ICON = "git:";       // Text mode
 const EMOJI_ICON = "🌿";                 // Emoji: herb
 
-/** Git widget colors (Solarized theme based) */
-const COLORS = {
-  branch: "\x1b[36m", // cyan
-  staged: "\x1b[33m", // yellow
-  modified: "\x1b[31m", // red
-  reset: "\x1b[0m",
-};
-
 /**
  * Execute a git command safely using execFile
  */
@@ -76,14 +68,14 @@ async function getGitStatus(cwd?: string): Promise<GitStatus | null> {
 function formatGitStatus(
   status: GitStatus,
   config: WidgetConfig,
-  icon: string
+  icon: string,
+  colorFn?: (text: string) => string
 ): string {
   const format = config.format ?? "compact";
-  const useColors = format !== "minimal";
 
-  const branchStr = useColors
-    ? `${COLORS.branch}${icon}${status.branch}${COLORS.reset}`
-    : `${icon}${status.branch}`;
+  // Apply icon + color
+  const coloredIcon = colorFn ? colorFn(icon) : icon;
+  const branchStr = `${coloredIcon}${status.branch}`;
 
   if (format === "minimal") {
     return status.isDirty ? `${branchStr} *` : branchStr;
@@ -92,17 +84,11 @@ function formatGitStatus(
   const parts = [branchStr];
 
   if (status.staged > 0) {
-    const stagedStr = useColors
-      ? `${COLORS.staged}+${status.staged}${COLORS.reset}`
-      : `+${status.staged}`;
-    parts.push(stagedStr);
+    parts.push(`+${status.staged}`);
   }
 
   if (status.modified > 0) {
-    const modifiedStr = useColors
-      ? `${COLORS.modified}*${status.modified}${COLORS.reset}`
-      : `*${status.modified}`;
-    parts.push(modifiedStr);
+    parts.push(`*${status.modified}`);
   }
 
   return parts.join(" ");
@@ -127,6 +113,8 @@ export class GitWidget extends BaseWidget {
     }
 
     const icon = this.getIcon(config, globalConfig);
-    return formatGitStatus(status, config, icon);
+    const colorFn = (text: string) => this.formatWithColor(text, globalConfig);
+
+    return formatGitStatus(status, config, icon, colorFn);
   }
 }

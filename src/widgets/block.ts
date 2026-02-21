@@ -45,7 +45,8 @@ function formatTimeRemaining(ms: number, format: "compact" | "detailed" | "minim
 function formatBlock(
   timeRemaining: number,
   config: WidgetConfig,
-  icon: string
+  icon: string,
+  colorFn?: (text: string) => string
 ): string {
   const format = config.format ?? "compact";
   const timeStr = formatTimeRemaining(timeRemaining, format);
@@ -53,7 +54,7 @@ function formatBlock(
   return formatWidgetValue(timeStr, icon, config, {
     short: "",
     long: "block",
-  });
+  }, colorFn);
 }
 
 /**
@@ -69,6 +70,8 @@ export class BlockWidget extends BaseWidget {
     const timeRemaining = getTimeRemaining(new Date());
 
     const icon = this.getIcon(config, globalConfig);
-    return formatBlock(timeRemaining, config, icon);
+    const colorFn = (text: string) => this.formatWithColor(text, globalConfig);
+
+    return formatBlock(timeRemaining, config, icon, colorFn);
   }
 }
