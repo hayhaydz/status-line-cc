@@ -126,10 +126,3 @@ export class GitWidget extends BaseWidget {
     return formatGitStatus(status, config, icon);
   }
 }
-
-/**
- * Create a git widget instance
- */
-export function createGitWidget(): Widget {
-  return new GitWidget();
-}
