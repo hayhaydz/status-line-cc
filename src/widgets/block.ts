@@ -8,61 +8,10 @@
 import type { Widget, WidgetConfig, ClaudeCodeInput, Config } from "../types.js";
 import { BaseWidget } from "../widget.js";
 import { formatWidgetValue } from "../util/format.js";
+import { getTimeRemaining } from "../util/time.js";
 
 /** Default block icon (Nerd Font clock) */
 const DEFAULT_ICON = "\uf017"; // nf-fa-clock
-
-/** Block reset times in UTC hours */
-const BLOCK_RESET_HOURS = [0, 5, 10, 15, 20];
-
-/** Block duration in milliseconds (5 hours) */
-const BLOCK_DURATION = 5 * 60 * 60 * 1000;
-
-/**
- * Get current block start time in UTC
- */
-function getCurrentBlockStart(): Date {
-  const now = new Date();
-  const utcHour = now.getUTCHours();
-
-  // Find the most recent block reset hour
-  let blockHour = BLOCK_RESET_HOURS[0];
-  for (const hour of BLOCK_RESET_HOURS) {
-    if (utcHour >= hour) {
-      blockHour = hour;
-    } else {
-      break;
-    }
-  }
-
-  // Create date for block start
-  const blockStart = new Date(now);
-  blockStart.setUTCHours(blockHour, 0, 0, 0);
-
-  // If we're in the next day's first block, adjust
-  if (now < blockStart) {
-    blockStart.setUTCDate(blockStart.getUTCDate() - 1);
-  }
-
-  return blockStart;
-}
-
-/**
- * Get current block end time in UTC
- */
-function getCurrentBlockEnd(): Date {
-  const blockStart = getCurrentBlockStart();
-  return new Date(blockStart.getTime() + BLOCK_DURATION);
-}
-
-/**
- * Calculate time remaining in current block (milliseconds)
- */
-function getTimeRemaining(): number {
-  const blockEnd = getCurrentBlockEnd();
-  const now = new Date();
-  return Math.max(0, blockEnd.getTime() - now.getTime());
-}
 
 /**
  * Format time remaining
@@ -113,7 +62,7 @@ export class BlockWidget extends BaseWidget {
   protected defaultIcon = DEFAULT_ICON;
 
   async render(input: ClaudeCodeInput, config: WidgetConfig, globalConfig?: Config): Promise<string> {
-    const timeRemaining = getTimeRemaining();
+    const timeRemaining = getTimeRemaining(new Date());
 
     const icon = this.getIcon(config);
     return formatBlock(timeRemaining, config, icon);
