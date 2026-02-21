@@ -162,10 +162,3 @@ export class ContextWidget extends BaseWidget {
     return formatContext(percent, config, icon);
   }
 }
-
-/**
- * Create a context widget instance
- */
-export function createContextWidget(): Widget {
-  return new ContextWidget();
-}
