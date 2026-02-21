@@ -13,8 +13,10 @@ import { debug } from "../util/logger.js";
 
 const execFileAsync = promisify(execFile);
 
-/** Default git icon (Nerd Font) */
-const DEFAULT_ICON = "";
+/** Default git icons */
+const DEFAULT_ICON = "\u{f02a2}";      // Nerd Font: nf-oct-git_branch
+const TEXT_CONTENT_ICON = "git:";       // Text mode
+const EMOJI_ICON = "🌿";                 // Emoji: herb
 
 /** Git widget colors (Solarized theme based) */
 const COLORS = {
@@ -112,6 +114,8 @@ function formatGitStatus(
 export class GitWidget extends BaseWidget {
   readonly name = "git";
   protected defaultIcon = DEFAULT_ICON;
+  protected textContentIcon = TEXT_CONTENT_ICON;
+  protected emojiIcon = EMOJI_ICON;
 
   async render(input: ClaudeCodeInput, config: WidgetConfig, globalConfig?: Config): Promise<string> {
     const cwd = input.cwd ?? input.workspace?.current_dir ?? input.workspace?.project_dir;
@@ -122,7 +126,7 @@ export class GitWidget extends BaseWidget {
       return ""; // Not in a git repo
     }
 
-    const icon = this.getIcon(config);
+    const icon = this.getIcon(config, globalConfig);
     return formatGitStatus(status, config, icon);
   }
 }
