@@ -19,6 +19,7 @@ import { warn } from "./util/logger.js";
 const DEFAULTS: Config = {
   format: "compact",
   iconMode: "nerdfont",
+  theme: "nord",
   verbose: false,
   cacheTTL: {
     glm: 5 * 60 * 1000, // 5 minutes

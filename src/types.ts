@@ -98,6 +98,9 @@ export interface Config {
   /** Icon display mode */
   iconMode?: IconMode;
 
+  /** Theme name for color scheme */
+  theme?: string;
+
   /** Enable debug logging */
   verbose?: boolean;
 
