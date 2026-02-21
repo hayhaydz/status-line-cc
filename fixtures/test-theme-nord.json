@@ -1,0 +1,15 @@
+{
+  "cwd": "/Users/hayhaydz/personal-coding/status-line-cc",
+  "model": {
+    "id": "glm-5",
+    "display_name": "GLM-5"
+  },
+  "workspace": {
+    "current_dir": "/Users/hayhaydz/personal-coding/status-line-cc",
+    "project_dir": "/Users/hayhaydz/personal-coding/status-line-cc"
+  },
+  "context_window": {
+    "used_percentage": 65
+  },
+  "transcript_path": "/Users/hayhaydz/.claude/sessions/test/transcript.jsonl"
+}

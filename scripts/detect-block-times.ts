@@ -36,7 +36,7 @@ import { fetchGLMQuota } from "../src/util/glm-api.ts";
 // CONSTANTS
 // ============================================================================
 
-const POLL_INTERVAL_MS = 10 * 60 * 1000; // 10 minutes - don't hammer the API
+const POLL_INTERVAL_MS = 1 * 60 * 1000; // 1 minute - don't hammer the API
 const MOCK_POLL_INTERVAL_MS = 30 * 1000; // 30 seconds for mock mode testing
 const RESET_THRESHOLD_PERCENT = 50;
 const FIVE_HOUR_BOUNDARIES = [0, 5, 10, 15, 20] as const;

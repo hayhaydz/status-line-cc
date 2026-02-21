@@ -51,11 +51,11 @@ export function formatWidgetValue(
 
   // If label is empty, omit the colon
   if (label === "") {
-    const result = `${icon}${value}`;
+    const result = `${icon} ${value}`;
     return colorFn ? colorFn(result) : result;
   }
 
-  const result = `${icon}${label}:${value}`;
+  const result = `${icon} ${label}:${value}`;
   return colorFn ? colorFn(result) : result;
 }
 
@@ -86,6 +86,6 @@ export function formatWidgetValueSimple(
     return colorFn ? colorFn(value) : value;
   }
 
-  const result = `${icon}${value}`;
+  const result = `${icon} ${value}`;
   return colorFn ? colorFn(result) : result;
 }
