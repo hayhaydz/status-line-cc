@@ -1,0 +1,13 @@
+# Bun configuration for statusline-hyz-cc
+
+[install]
+# Optional: Configure registry, cache, etc.
+# registry = "https://registry.npmjs.org/"
+
+[build]
+# Optional: Configure build behavior
+# target = "bun"
+
+[test]
+# Optional: Configure test behavior
+# preload = ["./test/setup.ts"]

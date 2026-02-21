@@ -1,0 +1,21 @@
+{
+  "name": "statusline-hyz-cc",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Lightweight Claude Code CLI status line for GLM Coding Plan users",
+  "scripts": {
+    "build": "bun build src/main.ts --compile --outfile=statusline-hyz-cc",
+    "install": "bun run build && mkdir -p ~/.claude/statusline-hyz-cc && cp statusline-hyz-cc ~/.claude/statusline-hyz-cc/",
+    "dev": "bun run src/main.ts",
+    "test": "bun test"
+  },
+  "keywords": [
+    "claude-code",
+    "statusline",
+    "glm",
+    "cli"
+  ],
+  "author": "hayhaydz",
+  "license": "MIT"
+}
