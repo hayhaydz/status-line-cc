@@ -134,6 +134,8 @@ export async function renderWidgets(
 export abstract class BaseWidget implements Widget {
   readonly name: string;
   protected defaultIcon: string;
+  protected textContentIcon = "";
+  protected emojiIcon = "";
 
   constructor(name: string, defaultIcon = "") {
     this.name = name;
@@ -144,8 +146,22 @@ export abstract class BaseWidget implements Widget {
     return config.enabled !== false;
   }
 
-  protected getIcon(config: WidgetConfig): string {
-    return config.icon ?? this.defaultIcon;
+  protected getIcon(config: WidgetConfig, globalConfig?: Config): string {
+    if (config.icon) {
+      return config.icon;
+    }
+
+    const mode = globalConfig?.iconMode ?? "nerdfont";
+
+    switch (mode) {
+      case "text":
+        return this.textContentIcon;
+      case "emoji":
+        return this.emojiIcon;
+      case "nerdfont":
+      default:
+        return this.defaultIcon;
+    }
   }
 
   abstract render(input: ClaudeCodeInput, config: WidgetConfig, globalConfig?: Config): Promise<string>;
