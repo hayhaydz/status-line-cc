@@ -91,10 +91,10 @@ function calculatePercentage(used: number, limit: number): number {
  * Create a progress bar string
  *
  * @param percentage - Percentage (0-100)
- * @param width - Width of the bar in characters (default: 10)
  * @returns Progress bar string like "[██████░░░░]"
  */
-function createProgressBar(percentage: number, width = 10): string {
+function createProgressBar(percentage: number): string {
+  const width = 10;
   const filledCount = Math.round((percentage / 100) * width);
   const emptyCount = width - filledCount;
 
@@ -120,7 +120,7 @@ function formatContext(
 
   // Add progress bar if enabled (fixed width of 10 characters)
   if (showProgressBar) {
-    result += createProgressBar(tokenPercent, 10);
+    result += createProgressBar(tokenPercent);
   }
 
   if (format === "minimal") {
