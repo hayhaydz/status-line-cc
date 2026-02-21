@@ -45,18 +45,23 @@ describe("WebSearchWidget", () => {
   it("should show web search percentage when available", async () => {
     // Mock the GLM API response with MCP usage data
     const mockData = {
-      limits: [
-        {
-          type: "MCP usage(1 Month)",
-          percentage: 25,
-          currentUsage: 250,
-          totol: 1000,
-          usageDetails: [
-            { modelCode: "search-prime", usage: 100 },
-            { modelCode: "web-reader", usage: 150 },
-          ],
-        },
-      ],
+      code: 0,
+      success: true,
+      msg: "ok",
+      data: {
+        limits: [
+          {
+            type: "MCP usage(1 Month)",
+            percentage: 25,
+            currentUsage: 250,
+            totol: 1000,
+            usageDetails: [
+              { modelCode: "search-prime", usage: 100 },
+              { modelCode: "web-reader", usage: 150 },
+            ],
+          },
+        ],
+      },
     };
 
     mockFetch.setResponse({
@@ -80,14 +85,19 @@ describe("WebSearchWidget", () => {
 
   it("should show detailed format with count", async () => {
     const mockData = {
-      limits: [
-        {
-          type: "MCP usage(1 Month)",
-          percentage: 42,
-          currentUsage: 420,
-          totol: 1000,
-        },
-      ],
+      code: 0,
+      success: true,
+      msg: "ok",
+      data: {
+        limits: [
+          {
+            type: "MCP usage(1 Month)",
+            percentage: 42,
+            currentUsage: 420,
+            totol: 1000,
+          },
+        ],
+      },
     };
 
     mockFetch.setResponse({
@@ -112,12 +122,17 @@ describe("WebSearchWidget", () => {
 
   it("should return empty string when no MCP limit found", async () => {
     const mockData = {
-      limits: [
-        {
-          type: "Token usage(5 Hour)",
-          percentage: 17,
-        },
-      ],
+      code: 0,
+      success: true,
+      msg: "ok",
+      data: {
+        limits: [
+          {
+            type: "Token usage(5 Hour)",
+            percentage: 17,
+          },
+        ],
+      },
     };
 
     mockFetch.setResponse({
@@ -150,14 +165,19 @@ describe("WebSearchWidget", () => {
 
   it("should show minimal format (percentage only)", async () => {
     const mockData = {
-      limits: [
-        {
-          type: "MCP usage(1 Month)",
-          percentage: 75,
-          currentUsage: 750,
-          totol: 1000,
-        },
-      ],
+      code: 0,
+      success: true,
+      msg: "ok",
+      data: {
+        limits: [
+          {
+            type: "MCP usage(1 Month)",
+            percentage: 75,
+            currentUsage: 750,
+            totol: 1000,
+          },
+        ],
+      },
     };
 
     mockFetch.setResponse({
@@ -180,14 +200,19 @@ describe("WebSearchWidget", () => {
 
   it("should show compact format with icon", async () => {
     const mockData = {
-      limits: [
-        {
-          type: "MCP usage(1 Month)",
-          percentage: 33,
-          currentUsage: 330,
-          totol: 1000,
-        },
-      ],
+      code: 0,
+      success: true,
+      msg: "ok",
+      data: {
+        limits: [
+          {
+            type: "MCP usage(1 Month)",
+            percentage: 33,
+            currentUsage: 330,
+            totol: 1000,
+          },
+        ],
+      },
     };
 
     mockFetch.setResponse({
@@ -230,14 +255,19 @@ describe("WebSearchWidget", () => {
 
   it("should use custom icon when provided", async () => {
     const mockData = {
-      limits: [
-        {
-          type: "MCP usage(1 Month)",
-          percentage: 50,
-          currentUsage: 500,
-          totol: 1000,
-        },
-      ],
+      code: 0,
+      success: true,
+      msg: "ok",
+      data: {
+        limits: [
+          {
+            type: "MCP usage(1 Month)",
+            percentage: 50,
+            currentUsage: 500,
+            totol: 1000,
+          },
+        ],
+      },
     };
 
     mockFetch.setResponse({
