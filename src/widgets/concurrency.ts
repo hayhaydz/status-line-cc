@@ -7,27 +7,13 @@
 
 import type { Widget, WidgetConfig, ClaudeCodeInput, Config } from "../types.js";
 import { BaseWidget } from "../widget.js";
+import { extractModelId } from "../util/model.js";
 
 /** Default concurrency icon (Nerd Font sync) */
 const DEFAULT_ICON = "\uf046"; // nf-cod-sync
 
 /** Default concurrency limit */
 const DEFAULT_CONCURRENCY = 5;
-
-/**
- * Extract model ID from input
- */
-function extractModelId(input: ClaudeCodeInput): string | undefined {
-  if (!input.model) {
-    return undefined;
-  }
-
-  if (typeof input.model === "string") {
-    return input.model;
-  }
-
-  return input.model.id;
-}
 
 /**
  * Get concurrency limit for model
