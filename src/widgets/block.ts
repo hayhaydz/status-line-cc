@@ -7,6 +7,7 @@
 
 import type { Widget, WidgetConfig, ClaudeCodeInput, Config } from "../types.js";
 import { BaseWidget } from "../widget.js";
+import { formatWidgetValue } from "../util/format.js";
 
 /** Default block icon (Nerd Font clock) */
 const DEFAULT_ICON = "\uf017"; // nf-fa-clock
@@ -96,16 +97,12 @@ function formatBlock(
   icon: string
 ): string {
   const format = config.format ?? "compact";
-
   const timeStr = formatTimeRemaining(timeRemaining, format);
 
-  if (format === "minimal") {
-    return timeStr;
-  }
-
-  const label = format === "detailed" ? "block" : "";
-
-  return `${icon}${label}:${timeStr}`;
+  return formatWidgetValue(timeStr, icon, config, {
+    short: "",
+    long: "block",
+  });
 }
 
 /**
