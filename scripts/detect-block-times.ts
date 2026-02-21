@@ -23,14 +23,23 @@
  */
 
 import { writeFile } from "node:fs/promises";
+import { fetchGLMQuota } from "../src/util/glm-api.ts";
 
-/** API response structure */
-interface QuotaResponse {
-  limits: Array<{
-    type: string;
-    percentage: number;
-  }>;
-}
+// ============================================================================
+// CONSTANTS
+// ============================================================================
+
+/** Polling interval in milliseconds (2 minutes) */
+const POLL_INTERVAL_MS = 2 * 60 * 1000;
+
+/** Percentage drop threshold to detect a reset */
+const RESET_THRESHOLD_PERCENT = 50;
+
+/** Hour window for matching 5-hour boundaries */
+const BOUNDARY_WINDOW_HOURS = 2;
+
+/** Expected 5-hour block boundaries in UTC */
+const FIVE_HOUR_BOUNDARIES = [0, 5, 10, 15, 20] as const;
 
 /** Poll result with timestamp and percentage */
 interface PollResult {
@@ -47,63 +56,68 @@ interface DetectionResults {
   lastUpdated: string;
 }
 
-/** Get API credentials from environment */
-function getCredentials(): { baseUrl: string; authToken: string } {
-  const baseUrl = process.env.ANTHROPIC_BASE_URL ?? "https://api.z.ai/api/anthropic";
-  const authToken = process.env.ANTHROPIC_AUTH_TOKEN ?? "";
-
-  if (!authToken) {
-    console.error("Error: ANTHROPIC_AUTH_TOKEN environment variable is required");
-    process.exit(1);
-  }
-
-  return { baseUrl, authToken };
-}
+// Store partial results for Ctrl+C handler
+let partialResults: PollResult[] = [];
+let isPolling = false;
 
 /**
  * Fetch current block percentage from GLM API
+ * Reuses the shared fetchGLMQuota function from glm-api.ts
  */
 async function getBlockPercentage(): Promise<number | null> {
-  const { baseUrl, authToken } = getCredentials();
+  const response = await fetchGLMQuota();
 
-  try {
-    const url = `${baseUrl}/api/monitor/usage/quota/limit`;
-    const response = await fetch(url, {
-      method: "GET",
-      headers: {
-        "Authorization": `Bearer ${authToken}`,
-        "Content-Type": "application/json",
-      },
-      signal: AbortSignal.timeout(10000), // 10 second timeout
-    });
-
-    if (!response.ok) {
-      console.error(`API error: ${response.status} ${response.statusText}`);
-      return null;
-    }
-
-    const data = (await response.json()) as QuotaResponse;
-    const blockLimit = data.limits.find((limit) => limit.type === "Token usage(5 Hour)");
-
-    return blockLimit?.percentage ?? null;
-  } catch (error) {
-    console.error(`Fetch failed: ${(error as Error).message}`);
+  if ("error" in response) {
+    console.error(`API error: ${response.error}`);
     return null;
   }
+
+  const blockLimit = response.limits.find((limit) => limit.type === "Token usage(5 Hour)");
+  return blockLimit?.percentage ?? null;
 }
 
 /**
  * Detect if a reset occurred based on percentage drop
- * A reset is detected when percentage drops by more than 50%
+ * A reset is detected when percentage drops by more than RESET_THRESHOLD_PERCENT
  */
 function detectReset(current: number | null, previous: number | null): boolean {
   if (current === null || previous === null) {
     return false;
   }
 
-  // Reset detected if percentage dropped by more than 50%
+  // Reset detected if percentage dropped by more than threshold
   const drop = previous - current;
-  return drop > 50;
+  return drop > RESET_THRESHOLD_PERCENT;
+}
+
+/**
+ * Save partial results when interrupted
+ */
+async function savePartialResults(): Promise<void> {
+  if (partialResults.length === 0) {
+    console.log("\n\n⚠️  No data collected to save.");
+    return;
+  }
+
+  console.log("\n\n⚠️  Interrupted! Saving partial results...");
+
+  const analysis = analyzeResets(partialResults);
+  const outputPath = new URL("block-times.json", import.meta.url);
+  await saveResults(analysis, outputPath.pathname);
+
+  console.log("\n✨ Partial results saved.");
+}
+
+/**
+ * Handle Ctrl+C (SIGINT) to save partial results
+ */
+function setupSignalHandler(): void {
+  process.on("SIGINT", async () => {
+    if (isPolling) {
+      await savePartialResults();
+    }
+    process.exit(0);
+  });
 }
 
 /**
@@ -111,15 +125,17 @@ function detectReset(current: number | null, previous: number | null): boolean {
  */
 async function pollForResets(durationHours: number): Promise<PollResult[]> {
   const results: PollResult[] = [];
-  const pollInterval = 2 * 60 * 1000; // 2 minutes
+  partialResults = results;
+  isPolling = true;
+
   const duration = durationHours * 60 * 60 * 1000;
   const startTime = Date.now();
   const endTime = startTime + duration;
 
   console.log(`\n🔍 Starting block time detection...`);
   console.log(`   Duration: ${durationHours} hours`);
-  console.log(`   Poll interval: 2 minutes`);
-  console.log(`   Expected polls: ~${Math.floor(duration / pollInterval)}`);
+  console.log(`   Poll interval: ${POLL_INTERVAL_MS / 60 / 1000} minutes`);
+  console.log(`   Expected polls: ~${Math.floor(duration / POLL_INTERVAL_MS)}`);
   console.log(`\nPress Ctrl+C to stop early and save results.\n`);
 
   let previousPercentage: number | null = null;
@@ -160,10 +176,11 @@ async function pollForResets(durationHours: number): Promise<PollResult[]> {
 
     // Wait for next poll (unless we're done)
     if (Date.now() < endTime) {
-      await new Promise((resolve) => setTimeout(resolve, pollInterval));
+      await new Promise((resolve) => setTimeout(resolve, POLL_INTERVAL_MS));
     }
   }
 
+  isPolling = false;
   console.log(`\n\n✅ Polling complete. Collected ${results.length} data points.`);
   return results;
 }
@@ -191,7 +208,7 @@ function analyzeResets(results: PollResult[]): DetectionResults {
 
   console.log(`\n📈 Analyzing ${resetEvents.length} reset events...`);
 
-  // Calculate offset from expected 5-hour boundaries (00:00, 05:00, 10:00, 15:00, 20:00)
+  // Calculate offset from expected 5-hour boundaries
   const offsets: number[] = [];
 
   for (const reset of resetEvents) {
@@ -200,11 +217,10 @@ function analyzeResets(results: PollResult[]): DetectionResults {
     const utcMinute = resetTime.getUTCMinutes();
 
     // Find the nearest 5-hour boundary
-    const boundaries = [0, 5, 10, 15, 20];
     let nearestBoundary = 0;
 
-    for (const boundary of boundaries) {
-      if (Math.abs(utcHour - boundary) <= 2) {
+    for (const boundary of FIVE_HOUR_BOUNDARIES) {
+      if (Math.abs(utcHour - boundary) <= BOUNDARY_WINDOW_HOURS) {
         nearestBoundary = boundary;
         break;
       }
@@ -223,8 +239,7 @@ function analyzeResets(results: PollResult[]): DetectionResults {
   const medianOffset = sortedOffsets[Math.floor(sortedOffsets.length / 2)];
 
   // Generate suggested schedule
-  const boundaries = [0, 5, 10, 15, 20];
-  const suggestedSchedule = boundaries.map((hour) => {
+  const suggestedSchedule = FIVE_HOUR_BOUNDARIES.map((hour) => {
     const totalMinutes = hour * 60 + medianOffset;
     const scheduleHour = Math.floor(totalMinutes / 60) % 24;
     const scheduleMinute = totalMinutes % 60;
@@ -271,6 +286,9 @@ async function main(): Promise<void> {
   console.log("\n╔════════════════════════════════════════════════════════╗");
   console.log("║       GLM Block Time Detection Script                  ║");
   console.log("╚════════════════════════════════════════════════════════╝");
+
+  // Setup signal handler for graceful exit
+  setupSignalHandler();
 
   // Run polling
   const results = await pollForResets(durationHours);
