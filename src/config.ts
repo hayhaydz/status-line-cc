@@ -16,10 +16,10 @@ import type { Config, WidgetConfig } from "./types.js";
 import { warn } from "./util/logger.js";
 
 /** Default configuration */
-const DEFAULTS: Config = {
+export const DEFAULTS: Config = {
   format: "compact",
-  iconMode: "nerdfont",
-  theme: "nord",
+  iconMode: "text",
+  theme: "monochrome",
   verbose: false,
   cacheTTL: {
     glm: 5 * 60 * 1000, // 5 minutes

@@ -3,9 +3,18 @@
  */
 
 import { describe, it, expect } from "bun:test";
-import { deepMerge } from "../src/config.ts";
+import { deepMerge, DEFAULTS } from "../src/config.ts";
 
 describe("Config Utility", () => {
+  describe("DEFAULTS", () => {
+    it("should have iconMode set to 'text' for plaintext output", () => {
+      expect(DEFAULTS.iconMode).toBe("text");
+    });
+
+    it("should have theme set to 'monochrome' for plaintext output", () => {
+      expect(DEFAULTS.theme).toBe("monochrome");
+    });
+  });
   describe("deepMerge", () => {
     it("should merge shallow objects", () => {
       const target = { a: 1, b: 2 };
