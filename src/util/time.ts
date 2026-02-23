@@ -1,34 +1,78 @@
 /**
  * Time utility functions
  *
- * Provides simplified block time calculation using math instead of loops.
- * Block schedule: 5-hour blocks starting at 00:00, 05:00, 10:00, 15:00, 20:00 UTC.
+ * Provides block time calculation for GLM Coding Plan.
+ * Block schedule: 5-hour blocks starting at 00:23, 05:23, 10:23, 15:23, 20:23 China time (UTC+8).
  */
 
 /** Block duration in milliseconds (5 hours) */
 export const BLOCK_DURATION = 5 * 60 * 60 * 1000;
 
+/** Block offset in minutes (blocks start at :23, not :00) */
+export const BLOCK_OFFSET_MINUTES = 23;
+
+/** China timezone offset from UTC in hours */
+export const CHINA_TIMEZONE_OFFSET = 8;
+
 /**
- * Get current block start time in UTC
+ * Get current time in China timezone (UTC+8)
  *
- * Uses simple math: Math.floor(hour / 5) * 5 to find the block start hour.
- * Much simpler than looping through an array.
+ * @param date - The date to convert (defaults to now)
+ * @returns Object with China time components
+ */
+function getChinaTime(date: Date = new Date()): { hours: number; minutes: number; totalMs: number } {
+  const utcMs = date.getTime();
+  const chinaMs = utcMs + CHINA_TIMEZONE_OFFSET * 60 * 60 * 1000;
+
+  const chinaDate = new Date(chinaMs);
+  return {
+    hours: chinaDate.getUTCHours(),
+    minutes: chinaDate.getUTCMinutes(),
+    totalMs: chinaMs,
+  };
+}
+
+/**
+ * Get current block start time
+ *
+ * Uses China timezone (UTC+8) with 23-minute offset.
+ * Blocks: 00:23, 05:23, 10:23, 15:23, 20:23 China time.
  *
  * @param date - The date to calculate block start for (defaults to now)
  * @returns Date representing the start of the current 5-hour block
  */
 export function getCurrentBlockStart(date: Date = new Date()): Date {
-  const utcHour = date.getUTCHours();
-  const blockStartHour = Math.floor(utcHour / 5) * 5;
+  const china = getChinaTime(date);
 
-  const blockStart = new Date(date);
-  blockStart.setUTCHours(blockStartHour, 0, 0, 0);
+  // Find block start hour (0, 5, 10, 15, 20)
+  // Adjust for the 23-minute offset: if minutes >= 23, we're in the next block segment
+  let blockStartHour = Math.floor(china.hours / 5) * 5;
 
-  return blockStart;
+  // If current time is before the offset (e.g., 00:00-00:22), we're still in previous block
+  if (china.hours % 5 === 0 && china.minutes < BLOCK_OFFSET_MINUTES) {
+    blockStartHour -= 5;
+    if (blockStartHour < 0) {
+      blockStartHour = 20; // Previous day's last block
+    }
+  }
+
+  // Calculate block start in China time (as ms from epoch)
+  const blockStartChinaMs = china.totalMs
+    - (china.hours * 60 * 60 * 1000)
+    - (china.minutes * 60 * 1000)
+    - date.getUTCSeconds() * 1000
+    - date.getUTCMilliseconds()
+    + (blockStartHour * 60 * 60 * 1000)
+    + (BLOCK_OFFSET_MINUTES * 60 * 1000);
+
+  // Convert back to UTC
+  const blockStartUtcMs = blockStartChinaMs - CHINA_TIMEZONE_OFFSET * 60 * 60 * 1000;
+
+  return new Date(blockStartUtcMs);
 }
 
 /**
- * Get current block end time in UTC
+ * Get current block end time
  *
  * @param date - The date to calculate block end for (defaults to now)
  * @returns Date representing the end of the current 5-hour block

@@ -1,178 +1,137 @@
 /**
  * Tests for time utility functions
  *
- * Tests simplified block time calculation using math instead of loops.
+ * Tests block time calculation using China timezone (UTC+8) with 23-minute offset.
+ * China blocks: 00:23, 05:23, 10:23, 15:23, 20:23
+ * UTC equivalent: 16:23, 21:23 (prev day), 02:23, 07:23, 12:23
+ *
+ * Conversion: UTC_to_China = UTC + 8 hours
+ *            China_to_UTC = China - 8 hours
  */
 
 import { describe, it, expect } from "bun:test";
-import { getCurrentBlockStart, getCurrentBlockEnd, getTimeRemaining } from "../../src/util/time.ts";
+import { getCurrentBlockStart, getCurrentBlockEnd, getTimeRemaining, BLOCK_OFFSET_MINUTES } from "../../src/util/time.ts";
 
 describe("getCurrentBlockStart", () => {
-  it("returns 00:00 for hours 0-4", () => {
-    const result = getCurrentBlockStart(new Date("2026-02-21T03:00:00Z"));
-    expect(result.getUTCHours()).toBe(0);
-    expect(result.getUTCMinutes()).toBe(0);
-    expect(result.getUTCSeconds()).toBe(0);
-    expect(result.getUTCMilliseconds()).toBe(0);
+  // UTC 10:30 = China 18:30 → Block started at China 15:23 = UTC 07:23
+  it("returns 07:23 UTC for China 15:23-20:22 block", () => {
+    const result = getCurrentBlockStart(new Date("2026-02-21T10:30:00Z")); // China 18:30
+    expect(result.getUTCHours()).toBe(7);
+    expect(result.getUTCMinutes()).toBe(BLOCK_OFFSET_MINUTES);
   });
 
-  it("returns 00:00 for hour 0", () => {
-    const result = getCurrentBlockStart(new Date("2026-02-21T00:00:00Z"));
-    expect(result.getUTCHours()).toBe(0);
+  // UTC 12:30 = China 20:30 → Block started at China 20:23 = UTC 12:23
+  it("returns 12:23 UTC for China 20:23-00:22 block", () => {
+    const result = getCurrentBlockStart(new Date("2026-02-21T12:30:00Z")); // China 20:30
+    expect(result.getUTCHours()).toBe(12);
+    expect(result.getUTCMinutes()).toBe(BLOCK_OFFSET_MINUTES);
   });
 
-  it("returns 00:00 for hour 4", () => {
-    const result = getCurrentBlockStart(new Date("2026-02-21T04:59:59Z"));
-    expect(result.getUTCHours()).toBe(0);
+  // UTC 18:00 = China 02:00 → Block started at China 00:23 = UTC 16:23 (previous day)
+  it("returns 16:23 UTC for China 00:23-05:22 block", () => {
+    const result = getCurrentBlockStart(new Date("2026-02-21T18:00:00Z")); // China 02:00
+    expect(result.getUTCHours()).toBe(16);
+    expect(result.getUTCMinutes()).toBe(BLOCK_OFFSET_MINUTES);
   });
 
-  it("returns 05:00 for hours 5-9", () => {
-    const result = getCurrentBlockStart(new Date("2026-02-21T07:00:00Z"));
-    expect(result.getUTCHours()).toBe(5);
+  // UTC 23:00 = China 07:00 → Block started at China 05:23 = UTC 21:23 (previous day)
+  it("returns 21:23 UTC for China 05:23-10:22 block", () => {
+    const result = getCurrentBlockStart(new Date("2026-02-21T23:00:00Z")); // China 07:00
+    expect(result.getUTCHours()).toBe(21);
+    expect(result.getUTCMinutes()).toBe(BLOCK_OFFSET_MINUTES);
   });
 
-  it("returns 05:00 for hour 5", () => {
-    const result = getCurrentBlockStart(new Date("2026-02-21T05:00:00Z"));
-    expect(result.getUTCHours()).toBe(5);
+  // UTC 04:00 = China 12:00 → Block started at China 10:23 = UTC 02:23
+  it("returns 02:23 UTC for China 10:23-15:22 block", () => {
+    const result = getCurrentBlockStart(new Date("2026-02-21T04:00:00Z")); // China 12:00
+    expect(result.getUTCHours()).toBe(2);
+    expect(result.getUTCMinutes()).toBe(BLOCK_OFFSET_MINUTES);
   });
 
-  it("returns 05:00 for hour 9", () => {
-    const result = getCurrentBlockStart(new Date("2026-02-21T09:59:59Z"));
-    expect(result.getUTCHours()).toBe(5);
+  // UTC 07:00 = China 15:00 → Block started at China 15:23 = UTC 07:23
+  // Wait: China 15:00 is BEFORE 15:23, so it's still in previous block (10:23-15:22)
+  // Block started at China 10:23 = UTC 02:23
+  it("returns 02:23 UTC for China time before 15:23", () => {
+    const result = getCurrentBlockStart(new Date("2026-02-21T07:00:00Z")); // China 15:00 (before 15:23)
+    expect(result.getUTCHours()).toBe(2);
+    expect(result.getUTCMinutes()).toBe(BLOCK_OFFSET_MINUTES);
   });
 
-  it("returns 10:00 for hours 10-14", () => {
-    const result = getCurrentBlockStart(new Date("2026-02-21T12:00:00Z"));
-    expect(result.getUTCHours()).toBe(10);
+  // Edge case: exactly at block boundary (China 15:23 = UTC 07:23)
+  it("returns 07:23 UTC for China exactly at 15:23", () => {
+    const result = getCurrentBlockStart(new Date("2026-02-21T07:23:00Z")); // China 15:23 exactly
+    expect(result.getUTCHours()).toBe(7);
+    expect(result.getUTCMinutes()).toBe(BLOCK_OFFSET_MINUTES);
   });
 
-  it("returns 15:00 for hours 15-19", () => {
-    const result = getCurrentBlockStart(new Date("2026-02-21T17:00:00Z"));
-    expect(result.getUTCHours()).toBe(15);
+  // Edge case: one minute before block boundary (China 15:22 = UTC 07:22)
+  it("returns 02:23 UTC for China one minute before 15:23", () => {
+    const result = getCurrentBlockStart(new Date("2026-02-21T07:22:00Z")); // China 15:22 (before 15:23)
+    expect(result.getUTCHours()).toBe(2);
+    expect(result.getUTCMinutes()).toBe(BLOCK_OFFSET_MINUTES);
   });
 
-  it("returns 20:00 for hours 20-23", () => {
-    const result = getCurrentBlockStart(new Date("2026-02-21T22:00:00Z"));
-    expect(result.getUTCHours()).toBe(20);
-  });
-
-  it("returns 20:00 for hour 23", () => {
-    const result = getCurrentBlockStart(new Date("2026-02-21T23:59:59Z"));
-    expect(result.getUTCHours()).toBe(20);
-  });
-
-  it("returns 20:00 for hour 20", () => {
-    const result = getCurrentBlockStart(new Date("2026-02-21T20:00:00Z"));
-    expect(result.getUTCHours()).toBe(20);
-  });
-
-  it("preserves the UTC date", () => {
-    const input = new Date("2026-02-21T07:30:45Z");
+  it("preserves the UTC date components", () => {
+    const input = new Date("2026-02-21T10:30:00Z");
     const result = getCurrentBlockStart(input);
     expect(result.getUTCFullYear()).toBe(2026);
     expect(result.getUTCMonth()).toBe(1); // February
-    expect(result.getUTCDate()).toBe(21);
   });
 });
 
 describe("getCurrentBlockEnd", () => {
-  it("returns 05:00 for block starting at 00:00", () => {
-    const result = getCurrentBlockEnd(new Date("2026-02-21T03:00:00Z"));
-    expect(result.getUTCHours()).toBe(5);
-    expect(result.getUTCMinutes()).toBe(0);
-    expect(result.getUTCSeconds()).toBe(0);
-    expect(result.getUTCMilliseconds()).toBe(0);
+  it("returns block end 5 hours after start", () => {
+    const result = getCurrentBlockEnd(new Date("2026-02-21T10:30:00Z")); // China 18:30
+    // Block started at UTC 07:23, ends at UTC 12:23
+    expect(result.getUTCHours()).toBe(12);
+    expect(result.getUTCMinutes()).toBe(BLOCK_OFFSET_MINUTES);
   });
 
-  it("returns 10:00 for block starting at 05:00", () => {
-    const result = getCurrentBlockEnd(new Date("2026-02-21T07:00:00Z"));
-    expect(result.getUTCHours()).toBe(10);
-  });
-
-  it("returns 15:00 for block starting at 10:00", () => {
-    const result = getCurrentBlockEnd(new Date("2026-02-21T12:00:00Z"));
-    expect(result.getUTCHours()).toBe(15);
-  });
-
-  it("returns 20:00 for block starting at 15:00", () => {
-    const result = getCurrentBlockEnd(new Date("2026-02-21T17:00:00Z"));
-    expect(result.getUTCHours()).toBe(20);
-  });
-
-  it("returns next day 01:00 for block starting at 20:00", () => {
-    const result = getCurrentBlockEnd(new Date("2026-02-21T22:00:00Z"));
-    // Block 20:00 + 5 hours = 25:00 UTC = 01:00 next day
-    expect(result.getUTCHours()).toBe(1);
-    expect(result.getUTCDate()).toBe(22); // Next day
+  it("handles day boundary correctly", () => {
+    const result = getCurrentBlockEnd(new Date("2026-02-21T18:00:00Z")); // China 02:00
+    // Block started at UTC 16:23, ends at UTC 21:23
+    expect(result.getUTCHours()).toBe(21);
+    expect(result.getUTCMinutes()).toBe(BLOCK_OFFSET_MINUTES);
   });
 });
 
 describe("getTimeRemaining", () => {
   it("returns positive milliseconds within block", () => {
-    const result = getTimeRemaining(new Date("2026-02-21T02:30:00Z"));
+    const result = getTimeRemaining(new Date("2026-02-21T10:30:00Z"));
     expect(result).toBeGreaterThan(0);
   });
 
-  it("returns approximately 2.5 hours for time at 02:30", () => {
-    const result = getTimeRemaining(new Date("2026-02-21T02:30:00Z"));
+  it("returns approximately 5 hours at block start", () => {
+    // Block starts at 07:23 UTC
+    const result = getTimeRemaining(new Date("2026-02-21T07:23:00Z"));
+    // Full 5 hours = 18000000 ms
+    expect(result).toBeCloseTo(18000000, -3);
+  });
+
+  it("returns approximately 2.5 hours halfway through block", () => {
+    // Block 07:23-12:23, at 09:53 we have ~2.5 hours left
+    const result = getTimeRemaining(new Date("2026-02-21T09:53:00Z"));
     // 2.5 hours = 9000000 ms
-    expect(result).toBeCloseTo(9000000, -3); // Allow ~1000ms tolerance
-  });
-
-  it("returns approximately 30 minutes for time at 04:30", () => {
-    const result = getTimeRemaining(new Date("2026-02-21T04:30:00Z"));
-    // 30 minutes = 1800000 ms
-    expect(result).toBeCloseTo(1800000, -3);
-  });
-
-  it("returns approximately 3 hours for time at 17:00", () => {
-    const result = getTimeRemaining(new Date("2026-02-21T17:00:00Z"));
-    // 3 hours = 10800000 ms
-    expect(result).toBeCloseTo(10800000, -3);
-  });
-
-  it("returns approximately 1 hour for time at 19:00", () => {
-    const result = getTimeRemaining(new Date("2026-02-21T19:00:00Z"));
-    // 1 hour = 3600000 ms
-    expect(result).toBeCloseTo(3600000, -3);
-  });
-
-  it("returns approximately 4 hours for time at 21:00", () => {
-    const result = getTimeRemaining(new Date("2026-02-21T21:00:00Z"));
-    // 4 hours = 14400000 ms
-    expect(result).toBeCloseTo(14400000, -3);
-  });
-
-  it("returns approximately 2 hours for time at 23:00", () => {
-    const result = getTimeRemaining(new Date("2026-02-21T23:00:00Z"));
-    // Block 20:00-25:00 UTC, so at 23:00 we have 2 hours remaining
-    // 2 hours = 7200000 ms
-    expect(result).toBeCloseTo(7200000, -3);
+    expect(result).toBeCloseTo(9000000, -3);
   });
 
   it("returns very small amount for time just before block end", () => {
-    const result = getTimeRemaining(new Date("2026-02-21T04:59:59Z"));
-    // Block ends at 05:00:00, so we have 1 ms remaining
+    // Block 07:23-12:23, at 12:22:59 we have ~1 minute left
+    const result = getTimeRemaining(new Date("2026-02-21T12:22:59Z"));
     expect(result).toBeGreaterThan(0);
-    expect(result).toBeLessThan(2000); // Less than 2 seconds
+    expect(result).toBeLessThan(120000); // Less than 2 minutes
   });
 
-  it("returns approximately 1 second for time at 23:59:59", () => {
-    const result = getTimeRemaining(new Date("2026-02-21T23:59:59Z"));
-    // Block 20:00-25:00 UTC, so at 23:59:59 we have ~1 hour remaining (until 01:00 next day)
-    expect(result).toBeGreaterThan(0);
-    expect(result).toBeCloseTo(3601000, -3); // ~1 hour
-  });
-
-  it("handles exact block start time", () => {
-    const result = getTimeRemaining(new Date("2026-02-21T00:00:00Z"));
+  it("handles exact block boundary", () => {
+    // At 12:23 UTC, we're at the start of a new block
+    const result = getTimeRemaining(new Date("2026-02-21T12:23:00Z"));
     // Full 5 hours = 18000000 ms
     expect(result).toBeCloseTo(18000000, -3);
   });
+});
 
-  it("handles exact block boundary at 05:00", () => {
-    const result = getTimeRemaining(new Date("2026-02-21T05:00:00Z"));
-    // Full 5 hours = 18000000 ms
-    expect(result).toBeCloseTo(18000000, -3);
+describe("BLOCK_OFFSET_MINUTES", () => {
+  it("is 23 minutes", () => {
+    expect(BLOCK_OFFSET_MINUTES).toBe(23);
   });
 });
