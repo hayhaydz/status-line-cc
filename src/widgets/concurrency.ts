@@ -1,19 +1,14 @@
 /**
  * Concurrency Widget
  *
- * Displays the current model's concurrency limit.
- * Shows how many concurrent requests are allowed.
+ * Displays the current model's concurrency limit with active task count.
+ * Shows "model:active/limit" format with subagent models in brackets.
  */
 
 import type { Widget, WidgetConfig, ClaudeCodeInput, Config } from "../types.js";
 import { BaseWidget } from "../widget.js";
 import { extractModelId } from "../util/model.js";
-import { formatWidgetValue } from "../util/format.js";
-
-/** Default concurrency icons */
-const DEFAULT_ICON = "\u{f015}";      // Nerd Font: nf-cod-three_bars
-const TEXT_CONTENT_ICON = "conc:";     // Text mode
-const EMOJI_ICON = "⚙️";                // Emoji: gear
+import { getActiveTasksByModel } from "../util/task-tracker.js";
 
 /** Default concurrency limit */
 const DEFAULT_CONCURRENCY = 5;
@@ -26,28 +21,14 @@ function getConcurrencyLimit(modelId: string, config?: Config): number {
 }
 
 /**
- * Format concurrency display
- */
-function formatConcurrency(
-  concurrency: number,
-  config: WidgetConfig,
-  icon: string,
-  colorFn?: (text: string) => string
-): string {
-  return formatWidgetValue(String(concurrency), icon, config, {
-    short: "conc",
-    long: "concurrency",
-  }, colorFn);
-}
-
-/**
  * Concurrency Widget
  */
 export class ConcurrencyWidget extends BaseWidget {
   readonly name = "concurrency";
-  protected defaultIcon = DEFAULT_ICON;
-  protected textContentIcon = TEXT_CONTENT_ICON;
-  protected emojiIcon = EMOJI_ICON;
+  // Icon support removed - all icons are empty strings
+  protected defaultIcon = "";
+  protected textContentIcon = "";
+  protected emojiIcon = "";
 
   async render(input: ClaudeCodeInput, config: WidgetConfig, globalConfig?: Config): Promise<string> {
     const modelId = extractModelId(input);
@@ -56,11 +37,39 @@ export class ConcurrencyWidget extends BaseWidget {
       return "";
     }
 
-    const concurrency = getConcurrencyLimit(modelId, globalConfig);
+    const limit = getConcurrencyLimit(modelId, globalConfig);
 
-    const icon = this.getIcon(config, globalConfig);
-    const colorFn = (text: string) => this.formatWithColor(text, globalConfig);
+    // If no session_id, show simple format: model:limit
+    if (!input.session_id) {
+      return `${modelId}:${limit}`;
+    }
 
-    return formatConcurrency(concurrency, config, icon, colorFn);
+    // Get active tasks by model
+    const tasksByModel = getActiveTasksByModel(input.session_id);
+    const mainModelActive = tasksByModel.get(modelId) ?? 0;
+
+    // Remove main model from the map to only show subagent models in brackets
+    tasksByModel.delete(modelId);
+
+    // Build the main part: model:active/limit
+    const mainPart = `${modelId}:${mainModelActive}/${limit}`;
+
+    // If no subagent models, return just the main part
+    if (tasksByModel.size === 0) {
+      return mainPart;
+    }
+
+    // Build subagent parts: +model:active/limit
+    const subagentParts: string[] = [];
+    for (const entry of Array.from(tasksByModel.entries())) {
+      const [subModelId, active] = entry;
+      const subLimit = getConcurrencyLimit(subModelId, globalConfig);
+      subagentParts.push(`+${subModelId}:${active}/${subLimit}`);
+    }
+
+    // Sort subagent parts for consistent output
+    subagentParts.sort();
+
+    return `${mainPart} [${subagentParts.join(" ")}]`;
   }
 }
