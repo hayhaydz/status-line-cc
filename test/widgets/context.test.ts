@@ -11,20 +11,31 @@ import type { ClaudeCodeInput } from "../../src/types.ts";
 describe("ContextWidget", () => {
   const testTranscriptPath = "/tmp/test-transcript-context.jsonl";
 
-  beforeEach(async () => {
-    // Create a test transcript file with sample content
-    // Use a LOT of content to ensure we get a meaningful percentage (at least 10%)
-    // Context limit is 200,000 tokens, so we need ~20,000 tokens = ~80,000 characters
-    const longMessage = "This is a test message with content that will help us reach our token count goal for testing. ".repeat(500); // ~40,000 chars
-    const mockTranscriptContent = [
-      { content: longMessage },
-      { content: longMessage },
-    ]
-      .map((msg) => JSON.stringify(msg))
-      .join("\n")
-      .concat("\n");
+  // Create a mock transcript with assistant message containing usage data
+  const createMockTranscript = (inputTokens: number, cacheReadTokens = 0, outputTokens = 100) => {
+    const mockTranscript = [
+      // User message
+      { type: "user", message: { content: "Hello" } },
+      // Assistant message with usage data
+      {
+        type: "assistant",
+        message: {
+          content: [{ type: "text", text: "Response" }],
+          usage: {
+            input_tokens: inputTokens,
+            cache_read_input_tokens: cacheReadTokens,
+            output_tokens: outputTokens,
+          }
+        }
+      }
+    ];
+    return mockTranscript.map(msg => JSON.stringify(msg)).join("\n") + "\n";
+  };
 
-    await writeFile(testTranscriptPath, mockTranscriptContent, "utf-8");
+  beforeEach(async () => {
+    // Create a test transcript file with usage data
+    const mockContent = createMockTranscript(10000, 50000, 200);
+    await writeFile(testTranscriptPath, mockContent, "utf-8");
   });
 
   afterEach(async () => {
@@ -34,7 +45,7 @@ describe("ContextWidget", () => {
     }
   });
 
-  it("should show compact format with icon", async () => {
+  it("should show exact token format with icon", async () => {
     const input: ClaudeCodeInput = {
       transcript_path: testTranscriptPath,
       model: "claude-sonnet-4-6",
@@ -44,7 +55,9 @@ describe("ContextWidget", () => {
     const result = await widget.render(input, { format: "compact" });
 
     expect(result).toContain("\uf49b"); // nf-mdi-flash icon
-    expect(result).toContain("%");
+    expect(result).toContain("k"); // Should show token count with k suffix
+    expect(result).toContain("/"); // Should show limit separator
+    expect(result).toContain("200k"); // Default limit
   });
 
   it("should show minimal format (number only)", async () => {
@@ -56,7 +69,8 @@ describe("ContextWidget", () => {
     const widget = new ContextWidget();
     const result = await widget.render(input, { format: "minimal" });
 
-    expect(result).toMatch(/^\d+%$/);
+    // Should be in format like "60k/200k"
+    expect(result).toMatch(/^\d+\.?\d*k\/\d+k$/);
   });
 
   it("should show detailed format with label", async () => {
@@ -68,8 +82,9 @@ describe("ContextWidget", () => {
     const widget = new ContextWidget();
     const result = await widget.render(input, { format: "detailed" });
 
-    expect(result).toContain("ctx:");
-    expect(result).toContain("%");
+    expect(result).toContain("t:");
+    expect(result).toContain("k");
+    expect(result).toContain("/");
   });
 
   it("should return empty string when no transcript path", async () => {
@@ -93,210 +108,116 @@ describe("ContextWidget", () => {
     expect(result).toBe("");
   });
 
-  describe("Progress Bar", () => {
-    it("should show progress bar when enabled", async () => {
-      const input: ClaudeCodeInput = {
-        transcript_path: testTranscriptPath,
-        model: "claude-sonnet-4-6",
-      };
+  it("should return empty string when no assistant message with usage", async () => {
+    // Create transcript without assistant message
+    const noUsageTranscript = [
+      { type: "user", message: { content: "Hello" } },
+    ].map(msg => JSON.stringify(msg)).join("\n") + "\n";
 
-      const widget = new ContextWidget();
-      const result = await widget.render(input, { options: { progressBar: true } });
+    const noUsagePath = "/tmp/test-transcript-no-usage.jsonl";
+    await writeFile(noUsagePath, noUsageTranscript, "utf-8");
 
-      // Progress bar should contain brackets
-      expect(result).toMatch(/\[.*\]/);
-      // With our large transcript, we should see filled blocks
-      expect(result).toContain("█");
-      // Should contain the percentage
-      expect(result).toContain("%");
-    });
+    const input: ClaudeCodeInput = {
+      transcript_path: noUsagePath,
+      model: "claude-sonnet-4-6",
+    };
 
-    it("should not show progress bar when disabled", async () => {
-      const input: ClaudeCodeInput = {
-        transcript_path: testTranscriptPath,
-        model: "claude-sonnet-4-6",
-      };
+    const widget = new ContextWidget();
+    const result = await widget.render(input, {});
 
-      const widget = new ContextWidget();
-      const result = await widget.render(input, { options: { progressBar: false } });
+    expect(result).toBe("");
 
-      // Should not contain progress bar brackets
-      expect(result).not.toContain("[");
-    });
-
-    it("should not show progress bar when option not set", async () => {
-      const input: ClaudeCodeInput = {
-        transcript_path: testTranscriptPath,
-        model: "claude-sonnet-4-6",
-      };
-
-      const widget = new ContextWidget();
-      const result = await widget.render(input, {});
-
-      // Should not contain progress bar brackets by default
-      expect(result).not.toContain("[");
-    });
-
-    it("should use fixed width of 10 for progress bar", async () => {
-      const input: ClaudeCodeInput = {
-        transcript_path: testTranscriptPath,
-        model: "claude-sonnet-4-6",
-      };
-
-      const widget = new ContextWidget();
-      const result = await widget.render(input, { options: { progressBar: true } });
-
-      // Extract progress bar content
-      const match = result.match(/\[(.*)\]/);
-      expect(match).toBeTruthy();
-      if (match) {
-        // Bar content should be exactly 10 characters (█ + ░)
-        expect(match[1].length).toBe(10);
-      }
-    });
-
-    it("should show progress bar with minimal format", async () => {
-      const input: ClaudeCodeInput = {
-        transcript_path: testTranscriptPath,
-        model: "claude-sonnet-4-6",
-      };
-
-      const widget = new ContextWidget();
-      const result = await widget.render(input, {
-        format: "minimal",
-        options: { progressBar: true }
-      });
-
-      // Should contain progress bar and percentage
-      expect(result).toMatch(/\[.*\]\s*\d+%/);
-    });
-
-    it("should show progress bar with compact format", async () => {
-      const input: ClaudeCodeInput = {
-        transcript_path: testTranscriptPath,
-        model: "claude-sonnet-4-6",
-      };
-
-      const widget = new ContextWidget();
-      const result = await widget.render(input, {
-        format: "compact",
-        options: { progressBar: true }
-      });
-
-      // Should contain progress bar, icon, and percentage
-      expect(result).toContain("\uf49b"); // icon
-      expect(result).toMatch(/\[.*\]/); // progress bar
-      expect(result).toContain("%"); // percentage
-    });
-
-    it("should show progress bar with detailed format", async () => {
-      const input: ClaudeCodeInput = {
-        transcript_path: testTranscriptPath,
-        model: "claude-sonnet-4-6",
-      };
-
-      const widget = new ContextWidget();
-      const result = await widget.render(input, {
-        format: "detailed",
-        options: { progressBar: true }
-      });
-
-      // Should contain progress bar, label, and percentage
-      expect(result).toContain("ctx:"); // label
-      expect(result).toMatch(/\[.*\]/); // progress bar
-      expect(result).toContain("%"); // percentage
-    });
+    await unlink(noUsagePath);
   });
 
-  describe("createProgressBar unit tests", () => {
-    const emptyTranscriptPath = "/tmp/test-transcript-empty.jsonl";
-    const fullTranscriptPath = "/tmp/test-transcript-full.jsonl";
-    const partialTranscriptPath = "/tmp/test-transcript-partial.jsonl";
+  it("should use the last assistant message for token count", async () => {
+    // Create transcript with multiple assistant messages
+    const multiTranscript = [
+      { type: "user", message: { content: "Hello" } },
+      {
+        type: "assistant",
+        message: {
+          content: [{ type: "text", text: "First" }],
+          usage: { input_tokens: 1000, cache_read_input_tokens: 0, output_tokens: 50 }
+        }
+      },
+      { type: "user", message: { content: "More" } },
+      {
+        type: "assistant",
+        message: {
+          content: [{ type: "text", text: "Second" }],
+          usage: { input_tokens: 5000, cache_read_input_tokens: 20000, output_tokens: 100 }
+        }
+      }
+    ].map(msg => JSON.stringify(msg)).join("\n") + "\n";
 
-    // Test 0%: empty bar [░░░░░░░░░░]
-    it("should show empty bar at 0%", async () => {
-      // Create empty transcript
-      await writeFile(emptyTranscriptPath, "", "utf-8");
+    const multiPath = "/tmp/test-transcript-multi.jsonl";
+    await writeFile(multiPath, multiTranscript, "utf-8");
+
+    const input: ClaudeCodeInput = {
+      transcript_path: multiPath,
+      model: "claude-sonnet-4-6",
+    };
+
+    const widget = new ContextWidget();
+    const result = await widget.render(input, {});
+
+    // Should use last message: 5000 + 20000 = 25000 = 25k
+    expect(result).toContain("25k");
+
+    await unlink(multiPath);
+  });
+
+  describe("Token formatting", () => {
+    it("should format small numbers without k suffix", async () => {
+      const smallTranscript = createMockTranscript(500, 0, 50);
+      const smallPath = "/tmp/test-transcript-small.jsonl";
+      await writeFile(smallPath, smallTranscript, "utf-8");
 
       const input: ClaudeCodeInput = {
-        transcript_path: emptyTranscriptPath,
+        transcript_path: smallPath,
         model: "claude-sonnet-4-6",
       };
 
       const widget = new ContextWidget();
-      const result = await widget.render(input, { options: { progressBar: true } });
+      const result = await widget.render(input, { format: "minimal" });
 
-      // Empty transcript returns empty string, so we can't test 0% directly
-      // The widget returns "" when used === 0
-      expect(result).toBe("");
+      // 500 tokens should show as "500/200k"
+      expect(result).toContain("500/");
 
-      // Clean up
-      await unlink(emptyTranscriptPath);
+      await unlink(smallPath);
     });
 
-    // Test ~60%: partial bar [██████░░░░]
-    it("should show partial bar at ~60%", async () => {
-      // Create transcript that results in ~60% of context window
-      // 60% of 200,000 tokens = 120,000 tokens ≈ 480,000 characters
-      const largeContent = "x".repeat(480000);
-      const partialContent = JSON.stringify({ content: largeContent }) + "\n";
-      await writeFile(partialTranscriptPath, partialContent, "utf-8");
-
+    it("should format thousands with k suffix", async () => {
       const input: ClaudeCodeInput = {
-        transcript_path: partialTranscriptPath,
+        transcript_path: testTranscriptPath, // 60k tokens
         model: "claude-sonnet-4-6",
       };
 
       const widget = new ContextWidget();
-      const result = await widget.render(input, { options: { progressBar: true } });
+      const result = await widget.render(input, { format: "minimal" });
 
-      // Extract progress bar
-      const match = result.match(/\[(.*)\]/);
-      expect(match).toBeTruthy();
-      if (match) {
-        const bar = match[1];
-        // Should have some filled blocks (6 out of 10)
-        const filledCount = (bar.match(/█/g) || []).length;
-        const emptyCount = (bar.match(/░/g) || []).length;
-        expect(filledCount + emptyCount).toBe(10);
-        // At 60%, we expect 6 filled blocks (round(0.6 * 10) = 6)
-        expect(filledCount).toBeGreaterThanOrEqual(5); // Allow some tolerance
-      }
-
-      // Clean up
-      await unlink(partialTranscriptPath);
+      // 10000 + 50000 = 60000 = 60k
+      expect(result).toContain("60k");
     });
 
-    // Test 100%: full bar [██████████]
-    it("should show full bar at 100%", async () => {
-      // Create transcript that exceeds context window (will cap at 100%)
-      // 100% of 200,000 tokens = 200,000 tokens ≈ 800,000 characters
-      const hugeContent = "x".repeat(900000);
-      const fullContent = JSON.stringify({ content: hugeContent }) + "\n";
-      await writeFile(fullTranscriptPath, fullContent, "utf-8");
+    it("should format with decimal for fractional thousands", async () => {
+      const decimalTranscript = createMockTranscript(500, 10000, 100); // 10.5k
+      const decimalPath = "/tmp/test-transcript-decimal.jsonl";
+      await writeFile(decimalPath, decimalTranscript, "utf-8");
 
       const input: ClaudeCodeInput = {
-        transcript_path: fullTranscriptPath,
+        transcript_path: decimalPath,
         model: "claude-sonnet-4-6",
       };
 
       const widget = new ContextWidget();
-      const result = await widget.render(input, { options: { progressBar: true } });
+      const result = await widget.render(input, { format: "minimal" });
 
-      // Should show 100%
-      expect(result).toContain("100%");
+      // 500 + 10000 = 10500 = 10.5k
+      expect(result).toContain("10.5k");
 
-      // Extract progress bar
-      const match = result.match(/\[(.*)\]/);
-      expect(match).toBeTruthy();
-      if (match) {
-        const bar = match[1];
-        // All blocks should be filled at 100%
-        expect(bar).toBe("██████████");
-      }
-
-      // Clean up
-      await unlink(fullTranscriptPath);
+      await unlink(decimalPath);
     });
   });
 
@@ -311,20 +232,33 @@ describe("ContextWidget", () => {
       const result = await widget.render(input, {});
 
       expect(result).toBeTruthy();
-      expect(result.length).toBeGreaterThan(0);
+      expect(result).toContain("200k"); // 200k limit
     });
 
-    it("should use correct context limit for claude-haiku-4-5-20251001", async () => {
+    it("should use correct context limit for glm-4.7", async () => {
       const input: ClaudeCodeInput = {
         transcript_path: testTranscriptPath,
-        model: "claude-haiku-4-5-20251001",
+        model: "glm-4.7",
       };
 
       const widget = new ContextWidget();
       const result = await widget.render(input, {});
 
       expect(result).toBeTruthy();
-      expect(result.length).toBeGreaterThan(0);
+      expect(result).toContain("200k"); // 200k limit
+    });
+
+    it("should use correct context limit for glm-5", async () => {
+      const input: ClaudeCodeInput = {
+        transcript_path: testTranscriptPath,
+        model: "glm-5",
+      };
+
+      const widget = new ContextWidget();
+      const result = await widget.render(input, {});
+
+      expect(result).toBeTruthy();
+      expect(result).toContain("200k"); // 200k limit
     });
 
     it("should use default context limit for unknown model", async () => {
@@ -354,24 +288,18 @@ describe("ContextWidget", () => {
     });
 
     it("should use default context limit when model is not provided", async () => {
-      // This tests the edge case where extractModelId returns undefined
-      // (when input.model is not provided at all)
       const input: ClaudeCodeInput = {
         transcript_path: testTranscriptPath,
-        // model is not provided - extractModelId returns undefined
       };
 
       const widget = new ContextWidget();
       const result = await widget.render(input, {});
 
-      // Widget should still work with default context limit
       expect(result).toBeTruthy();
       expect(result.length).toBeGreaterThan(0);
     });
 
     it("should use default context limit when model object has no id", async () => {
-      // This tests the edge case where extractModelId returns undefined
-      // (when input.model is an object without id property)
       const input: ClaudeCodeInput = {
         transcript_path: testTranscriptPath,
         model: { display_name: "Some Model" },
@@ -380,9 +308,46 @@ describe("ContextWidget", () => {
       const widget = new ContextWidget();
       const result = await widget.render(input, {});
 
-      // Widget should still work with default context limit
       expect(result).toBeTruthy();
       expect(result.length).toBeGreaterThan(0);
+    });
+  });
+
+  describe("Icon modes", () => {
+    it("should show nerdfont icon by default", async () => {
+      const input: ClaudeCodeInput = {
+        transcript_path: testTranscriptPath,
+        model: "claude-sonnet-4-6",
+      };
+
+      const widget = new ContextWidget();
+      const result = await widget.render(input, { format: "compact" });
+
+      expect(result).toContain("\uf49b"); // nf-mdi-flash
+    });
+
+    it("should show text icon in text mode", async () => {
+      const input: ClaudeCodeInput = {
+        transcript_path: testTranscriptPath,
+        model: "claude-sonnet-4-6",
+      };
+
+      const widget = new ContextWidget();
+      const result = await widget.render(input, { format: "compact" }, { iconMode: "text" });
+
+      expect(result).toContain("t:");
+    });
+
+    it("should show emoji icon in emoji mode", async () => {
+      const input: ClaudeCodeInput = {
+        transcript_path: testTranscriptPath,
+        model: "claude-sonnet-4-6",
+      };
+
+      const widget = new ContextWidget();
+      const result = await widget.render(input, { format: "compact" }, { iconMode: "emoji" });
+
+      expect(result).toContain("⚡");
     });
   });
 });

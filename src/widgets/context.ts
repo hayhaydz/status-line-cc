@@ -1,8 +1,8 @@
 /**
  * Context Widget
  *
- * Parses transcript.jsonl to calculate token and MCP usage percentages.
- * Shows context window utilization.
+ * Reads actual token usage from transcript.jsonl to show context window utilization.
+ * Displays exact token count (e.g., t:153k) instead of percentage.
  */
 
 import { readFile } from "node:fs/promises";
@@ -10,41 +10,74 @@ import { existsSync } from "node:fs";
 import type { Widget, WidgetConfig, ClaudeCodeInput, Config } from "../types.js";
 import { BaseWidget } from "../widget.js";
 import { debug } from "../util/logger.js";
-import { extractModelId } from "../util/model.js";
 import { formatWidgetValue } from "../util/format.js";
 
 /** Default context icons */
 const DEFAULT_ICON = "\uf49b";      // Nerd Font: nf-mdi-flash
-const TEXT_CONTENT_ICON = "ctx:";  // Text mode
+const TEXT_CONTENT_ICON = "t:";     // Text mode (t for tokens)
 const EMOJI_ICON = "⚡";            // Emoji: high voltage
 
-/** Context window limits (tokens) */
-const CONTEXT_LIMITS: Record<string, number> = {
-  "claude-opus-4-6": 200_000,
-  "claude-sonnet-4-6": 200_000,
-  "claude-haiku-4-5-20251001": 200_000,
-};
-
-/** Default context limit */
+/** Default context limit if not provided in input */
 const DEFAULT_CONTEXT_LIMIT = 200_000;
 
 /**
- * Get context limit for model
+ * Get context limit from input, with fallback
+ * Prefers context_window_size from input as it's the authoritative source.
  */
-function getContextLimit(modelId?: string): number {
-  if (!modelId) {
-    return DEFAULT_CONTEXT_LIMIT;
+function getContextLimit(input: ClaudeCodeInput): number {
+  // Use context_window_size from input if available (most reliable)
+  if (input.context_window?.context_window_size) {
+    return input.context_window.context_window_size;
   }
-  return CONTEXT_LIMITS[modelId] ?? DEFAULT_CONTEXT_LIMIT;
+  return DEFAULT_CONTEXT_LIMIT;
 }
 
 /**
- * Parse transcript.jsonl to count tokens
+ * Format token count for display
  *
- * Returns estimated token count based on message lines.
- * This is a rough estimate - actual token count may vary.
+ * Converts large numbers to compact format:
+ * - 153000 -> "153k"
+ * - 1200 -> "1.2k"
+ * - 500 -> "500"
  */
-async function parseTranscriptTokenCount(transcriptPath: string): Promise<number> {
+function formatTokenCount(tokens: number): string {
+  if (tokens >= 1_000_000) {
+    const val = tokens / 1_000_000;
+    return `${val % 1 === 0 ? val : val.toFixed(1)}m`;
+  }
+  if (tokens >= 1_000) {
+    const val = tokens / 1_000;
+    return `${val % 1 === 0 ? Math.round(val) : val.toFixed(1)}k`;
+  }
+  return String(tokens);
+}
+
+/**
+ * Usage data from an assistant message
+ */
+interface UsageData {
+  input_tokens: number;
+  cache_read_input_tokens?: number;
+  cache_creation_input_tokens?: number;
+  output_tokens: number;
+}
+
+/**
+ * Transcript message types
+ */
+interface TranscriptMessage {
+  type: string;
+  message?: {
+    usage?: UsageData;
+  };
+}
+
+/**
+ * Extract token usage from the last assistant message in transcript
+ *
+ * Returns input_tokens + cache_read_input_tokens for total context usage.
+ */
+async function getLastAssistantTokenCount(transcriptPath: string): Promise<number> {
   try {
     if (!existsSync(transcriptPath)) {
       debug(`Transcript not found: ${transcriptPath}`);
@@ -54,28 +87,33 @@ async function parseTranscriptTokenCount(transcriptPath: string): Promise<number
     const content = await readFile(transcriptPath, "utf-8");
     const lines = content.split("\n").filter(Boolean);
 
-    // Each line in transcript is a JSON message
-    // Rough estimate: ~4 characters per token (very approximate)
-    // This is intentionally simple - accurate token counting requires the tokenizer
-    const totalChars = lines.reduce((sum, line) => {
+    // Find the last assistant message with usage data
+    // Read from end to start for efficiency
+    for (let i = lines.length - 1; i >= 0; i--) {
       try {
-        const msg = JSON.parse(line);
-        // Count content length from various message types
-        const contentLength =
-          (msg.content?.length ?? 0) +
-          (msg.partial_json?.length ?? 0) +
-          (msg.tool_use?.input?.length ? JSON.stringify(msg.tool_use.input).length : 0) +
-          (msg.tool_result?.content?.length ?? 0) +
-          (msg.thinking?.length ?? 0);
+        const msg: TranscriptMessage = JSON.parse(lines[i]);
 
-        return sum + contentLength;
+        if (msg.type === "assistant" && msg.message?.usage) {
+          const usage = msg.message.usage;
+          // Total input context = new tokens + cached tokens
+          const totalInput =
+            (usage.input_tokens ?? 0) +
+            (usage.cache_read_input_tokens ?? 0) +
+            (usage.cache_creation_input_tokens ?? 0);
+
+          if (totalInput > 0) {
+            debug(`Found usage: input=${usage.input_tokens}, cache_read=${usage.cache_read_input_tokens}, total=${totalInput}`);
+            return totalInput;
+          }
+        }
       } catch {
-        return sum;
+        // Skip malformed lines
+        continue;
       }
-    }, 0);
+    }
 
-    // Rough estimate: 4 chars per token
-    return Math.ceil(totalChars / 4);
+    debug("No assistant message with usage data found");
+    return 0;
   } catch (error) {
     debug(`Failed to parse transcript: ${(error as Error).message}`);
     return 0;
@@ -83,55 +121,23 @@ async function parseTranscriptTokenCount(transcriptPath: string): Promise<number
 }
 
 /**
- * Calculate token usage percentage
- */
-function calculatePercentage(used: number, limit: number): number {
-  if (limit === 0) return 0;
-  return Math.min(100, Math.round((used / limit) * 100));
-}
-
-/**
- * Create a progress bar string
- *
- * @param percentage - Percentage (0-100)
- * @returns Progress bar string like "[██████░░░░]"
- */
-function createProgressBar(percentage: number): string {
-  const width = 10;
-  const filledCount = Math.round((percentage / 100) * width);
-  const emptyCount = width - filledCount;
-
-  const filled = "█".repeat(filledCount);
-  const empty = "░".repeat(emptyCount);
-
-  return `[${filled}${empty}]`;
-}
-
-/**
  * Format context display
  */
 function formatContext(
-  tokenPercent: number,
+  tokens: number,
+  limit: number,
   config: WidgetConfig,
   icon: string,
   colorFn?: (text: string) => string
 ): string {
-  const format = config.format ?? "compact";
-  const options = config.options ?? {};
-  const showProgressBar = options.progressBar === true;
+  const formattedTokens = formatTokenCount(tokens);
+  const formattedLimit = formatTokenCount(limit);
 
-  // Add progress bar if enabled (fixed width of 10 characters)
-  const progressBar = showProgressBar ? createProgressBar(tokenPercent) : "";
-
-  // Use format with label (only in detailed mode)
-  const value = formatWidgetValue(`${tokenPercent}%`, icon, config, {
+  // Show as "tokens/limit" format
+  const value = formatWidgetValue(`${formattedTokens}/${formattedLimit}`, icon, config, {
     short: "",
-    long: "ctx",
+    long: "t",
   }, colorFn);
-
-  if (showProgressBar) {
-    return `${progressBar} ${value}`;
-  }
 
   return value;
 }
@@ -152,20 +158,17 @@ export class ContextWidget extends BaseWidget {
       return "";
     }
 
-    const modelId = extractModelId(input);
-    const limit = getContextLimit(modelId);
+    const limit = getContextLimit(input);
 
-    const used = await parseTranscriptTokenCount(transcriptPath);
+    const tokens = await getLastAssistantTokenCount(transcriptPath);
 
-    if (used === 0) {
+    if (tokens === 0) {
       return "";
     }
-
-    const percent = calculatePercentage(used, limit);
 
     const icon = this.getIcon(config, globalConfig);
     const colorFn = (text: string) => this.formatWithColor(text, globalConfig);
 
-    return formatContext(percent, config, icon, colorFn);
+    return formatContext(tokens, limit, config, icon, colorFn);
   }
 }
