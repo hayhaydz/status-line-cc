@@ -13,7 +13,7 @@ import { formatWidgetValueSimple } from "../util/format.ts";
 
 /** Default quota icons */
 const DEFAULT_ICON = "\u{f0a9e}";      // Nerd Font: nf-mdi-chart_bar
-const TEXT_CONTENT_ICON = "quota:";    // Text mode
+const TEXT_CONTENT_ICON = "q:";    // Text mode
 const EMOJI_ICON = "📊";                // Emoji: bar chart
 
 /**
