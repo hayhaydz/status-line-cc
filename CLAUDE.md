@@ -211,6 +211,45 @@ Or use `/statusline` command:
 
 ---
 
+## Concurrency Tracking (Optional)
+
+To enable concurrency tracking for subagents, add hooks to `~/.claude/settings.json`:
+
+```json
+{
+  "hooks": {
+    "PreToolUse": [{
+      "matcher": "Task",
+      "hooks": [{
+        "type": "command",
+        "command": "/path/to/status-line-cc/scripts/task-tracker.sh start"
+      }]
+    }],
+    "PostToolUse": [{
+      "matcher": "Task",
+      "hooks": [{
+        "type": "command",
+        "command": "/path/to/status-line-cc/scripts/task-tracker.sh end"
+      }]
+    }]
+  }
+}
+```
+
+Replace `/path/to/status-line-cc` with the actual path to this repository.
+
+**Output format:**
+```
+glm-4.7:1/5 [+glm-4.5:2/10 +glm-5:1/3] │ git:main │ ctx:42%
+```
+
+**How it works:**
+- PreToolUse: Creates task file when subagent spawns
+- PostToolUse: Removes task file when subagent completes
+- Statusline: Reads directory, counts tasks per model, displays concurrency
+
+---
+
 ## Development Commands (When Implemented)
 
 ```bash
