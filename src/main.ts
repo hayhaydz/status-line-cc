@@ -34,9 +34,9 @@ function registerAllWidgets(): void {
   registerWidget(new ModelWidget());
   registerWidget(new ConcurrencyWidget());
   registerWidget(new ContextWidget());
+  registerWidget(new CacheWidget());
   registerWidget(new BlockWidget());
   registerWidget(new GLMWidget());
-  registerWidget(new CacheWidget());
   registerWidget(new WebSearchWidget());
 }
 
