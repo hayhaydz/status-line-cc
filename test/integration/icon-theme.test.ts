@@ -43,7 +43,7 @@ describe("Icon mode integration", () => {
   it("should render with text icons when configured", async () => {
     const config: Config = { iconMode: "text", theme: "monochrome", widgets: {} };
     const output = await renderWidgets(mockInput, {}, "compact", " | ", config);
-    expect(output).toContain("model:");
+    expect(output).toContain("m:");
   });
 
   it("should render with emoji icons when configured", async () => {

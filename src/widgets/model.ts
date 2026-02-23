@@ -9,10 +9,11 @@ import type { Widget, WidgetConfig, ClaudeCodeInput, Config } from "../types.js"
 import { BaseWidget } from "../widget.js";
 import { getWidgetConfig } from "../config.js";
 import { extractModelId } from "../util/model.js";
+import { isTextLabel } from "../util/format.js";
 
 /** Default model icons */
 const DEFAULT_ICON = "\u{e26d}";      // Nerd Font: nf-seti-config
-const TEXT_CONTENT_ICON = "model:";    // Text mode
+const TEXT_CONTENT_ICON = "m:";        // Text mode (shortened)
 const EMOJI_ICON = "🤖";                // Emoji: robot face
 
 /** Model display name mappings */
@@ -52,8 +53,15 @@ function formatModel(
     return colorFn ? colorFn(result) : result;
   }
 
-  const multiplierSymbol = format === "detailed" ? `(${multiplier}×)` : `(${multiplier}x)`;
-  const result = `${icon}${displayName} ${multiplierSymbol}`;
+  // Conditional: text labels get no parens, icons get parens
+  const isText = isTextLabel(icon);
+  const multiplierSymbol = isText
+    ? `${multiplier}x`           // "3x" for text
+    : `(${multiplier}x)`;        // "(3x)" for icons
+
+  // Conditional spacing: no space for text labels, space for icons
+  const separator = isText ? "" : " ";
+  const result = `${icon}${separator}${displayName} ${multiplierSymbol}`;
   return colorFn ? colorFn(result) : result;
 }
 
