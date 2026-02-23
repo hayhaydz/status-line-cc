@@ -8,6 +8,24 @@
 import type { WidgetConfig } from "../types.js";
 
 /**
+ * Check if the icon is a text label (ends with colon)
+ * Text labels get no space before value, icons get a space
+ *
+ * @param icon - The icon string to check
+ * @returns true if the icon is a text label (ends with ':')
+ *
+ * @example
+ * ```ts
+ * isTextLabel("g:")      // true
+ * isTextLabel("\ue725")  // false
+ * isTextLabel("🌿")      // false
+ * ```
+ */
+export function isTextLabel(icon: string): boolean {
+  return icon.endsWith(':');
+}
+
+/**
  * Label options for formatWidgetValue
  */
 export interface LabelOptions {
@@ -49,13 +67,16 @@ export function formatWidgetValue(
 
   const label = format === "detailed" ? labels.long : labels.short;
 
-  // If label is empty, omit the colon
+  // If label is empty, omit the label
   if (label === "") {
-    const result = `${icon} ${value}`;
+    const separator = isTextLabel(icon) ? "" : " ";
+    const result = `${icon}${separator}${value}`;
     return colorFn ? colorFn(result) : result;
   }
 
-  const result = `${icon} ${label}:${value}`;
+  // Use conditional spacing based on whether icon is a text label
+  const separator = isTextLabel(icon) ? "" : " ";
+  const result = `${icon}${separator}${label}:${value}`;
   return colorFn ? colorFn(result) : result;
 }
 
@@ -86,6 +107,7 @@ export function formatWidgetValueSimple(
     return colorFn ? colorFn(value) : value;
   }
 
-  const result = `${icon} ${value}`;
+  const separator = isTextLabel(icon) ? "" : " ";
+  const result = `${icon}${separator}${value}`;
   return colorFn ? colorFn(result) : result;
 }
