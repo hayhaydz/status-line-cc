@@ -20,6 +20,7 @@ import { WebSearchWidget } from "./widgets/websearch.ts";
 import type { ClaudeCodeInput, OutputFormat, Config } from "./types.ts";
 import { error as logError } from "./util/logger.ts";
 import { handleCliCommand } from "./cli.ts";
+import { cleanStaleDirectories } from "./util/task-tracker.js";
 import "./themes/index.js";
 import "./themes/nord.js";
 import "./themes/tokyonight.js";
@@ -113,6 +114,9 @@ export async function main(): Promise<void> {
 
   // Register all widgets
   registerAllWidgets();
+
+  // Clean stale directories
+  cleanStaleDirectories();
 
   // Read input from stdin
   const inputStr = await readStdin();
