@@ -12,7 +12,7 @@ import { getTimeRemaining } from "../util/time.js";
 
 /** Default block icons */
 const DEFAULT_ICON = "\u{f19bb}";     // Nerd Font: nf-mdi-timer
-const TEXT_CONTENT_ICON = "block:";    // Text mode
+const TEXT_CONTENT_ICON = "b:";    // Text mode
 const EMOJI_ICON = "⏱️";                // Emoji: stopwatch
 
 /**
@@ -53,7 +53,7 @@ function formatBlock(
 
   return formatWidgetValue(timeStr, icon, config, {
     short: "",
-    long: "block",
+    long: "b",
   }, colorFn);
 }
 
