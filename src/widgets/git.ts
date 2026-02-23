@@ -15,7 +15,7 @@ const execFileAsync = promisify(execFile);
 
 /** Default git icons */
 const DEFAULT_ICON = "\u{f02a2}";      // Nerd Font: nf-oct-git_branch
-const TEXT_CONTENT_ICON = "git:";       // Text mode
+const TEXT_CONTENT_ICON = "g:";          // Text mode
 const EMOJI_ICON = "🌿";                 // Emoji: herb
 
 /**

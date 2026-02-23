@@ -23,7 +23,7 @@ describe("GitWidget icon modes", () => {
     const mockConfig: WidgetConfig = {};
 
     const icon = widget.getIcon(mockConfig, mockGlobalConfig);
-    expect(icon).toBe("git:");
+    expect(icon).toBe("g:");
   });
 
   it("should select emoji icon when iconMode is 'emoji'", () => {
