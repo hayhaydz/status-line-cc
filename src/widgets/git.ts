@@ -10,6 +10,7 @@ import { promisify } from "node:util";
 import type { Widget, WidgetConfig, ClaudeCodeInput, GitStatus, Config } from "../types.js";
 import { BaseWidget } from "../widget.js";
 import { debug } from "../util/logger.js";
+import { isTextLabel } from "../util/format.js";
 
 const execFileAsync = promisify(execFile);
 
@@ -73,9 +74,12 @@ function formatGitStatus(
 ): string {
   const format = config.format ?? "compact";
 
+  // Conditional separator: no space for text labels, space for icons
+  const separator = isTextLabel(icon) ? "" : " ";
+
   // Apply icon + color
   const coloredIcon = colorFn ? colorFn(icon) : icon;
-  const branchStr = `${coloredIcon}${status.branch}`;
+  const branchStr = `${coloredIcon}${separator}${status.branch}`;
 
   if (format === "minimal") {
     return status.isDirty ? `${branchStr} *` : branchStr;
