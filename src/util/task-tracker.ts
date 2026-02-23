@@ -1,11 +1,17 @@
 import { existsSync, readdirSync, lstatSync, rmSync } from "fs";
-import { tmpdir } from "os";
 import { join } from "path";
 
 /**
  * Directory prefix for Claude status line session directories.
  */
 const DIR_PREFIX = "claude-sl-";
+
+/**
+ * Base directory for session directories.
+ * Uses /tmp directly for compatibility with shell hooks which write to /tmp.
+ * Note: On macOS, Node's tmpdir() returns /var/folders/... which is different from /tmp.
+ */
+const TMP_BASE = "/tmp";
 
 /**
  * Delimiter used in task filenames to separate model ID from tool use ID.
@@ -24,7 +30,7 @@ const STALE_THRESHOLD_MS = 24 * 60 * 60 * 1000;
  * @returns The absolute path to the session directory
  */
 export function getSessionDir(sessionId: string): string {
-  return join(tmpdir(), `${DIR_PREFIX}${sessionId}`);
+  return join(TMP_BASE, `${DIR_PREFIX}${sessionId}`);
 }
 
 /**
@@ -90,18 +96,17 @@ export function getActiveTasksByModel(sessionId: string): Map<string, number> {
  * Only removes directories with the claude-sl- prefix.
  */
 export function cleanStaleDirectories(): void {
-  const tmpDir = tmpdir();
   const now = Date.now();
 
   try {
-    const entries = readdirSync(tmpDir);
+    const entries = readdirSync(TMP_BASE);
 
     for (const entry of entries) {
       if (!entry.startsWith(DIR_PREFIX)) {
         continue;
       }
 
-      const entryPath = join(tmpDir, entry);
+      const entryPath = join(TMP_BASE, entry);
 
       try {
         const stats = lstatSync(entryPath);

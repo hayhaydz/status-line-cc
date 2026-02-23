@@ -4,8 +4,13 @@
 
 import { describe, it, expect, beforeEach, afterEach } from "bun:test";
 import { WebSearchWidget } from "../../src/widgets/websearch.ts";
-import type { ClaudeCodeInput, Config } from "../../src/types.ts";
+import type { ClaudeCodeInput, Config, WidgetConfig } from "../../src/types.ts";
 import { clearAll as clearCache } from "../../src/util/cache.ts";
+
+/** Strip ANSI color codes for cleaner test assertions */
+function stripAnsi(text: string): string {
+  return text.replace(/\x1b\[[0-9;]+m/g, "");
+}
 
 describe("WebSearchWidget", () => {
   let originalFetch: typeof globalThis.fetch;
@@ -286,5 +291,72 @@ describe("WebSearchWidget", () => {
     const result = await widget.render(input, { icon: "\uf015" }, config); // nf-fa-home
 
     expect(result).toContain("\uf015");
+  });
+
+  describe("Conditional spacing (Task 8)", () => {
+    const mockData = {
+      code: 0,
+      success: true,
+      msg: "ok",
+      data: {
+        limits: [
+          {
+            type: "MCP usage(1 Month)",
+            percentage: 1,
+            currentUsage: 10,
+            totol: 1000,
+          },
+        ],
+      },
+    };
+
+    const mockInput: ClaudeCodeInput = {};
+    const mockBaseConfig: Config = {
+      glm: {
+        authToken: "test-token",
+      },
+      theme: "monochrome",
+    };
+
+    beforeEach(() => {
+      mockFetch.setResponse({
+        ok: true,
+        json: async () => mockData,
+      } as Response);
+    });
+
+    it("should format text mode as 'w:1%' (no space after label)", async () => {
+      const widget = new WebSearchWidget();
+      const textConfig: Config = { ...mockBaseConfig, iconMode: "text" };
+      const widgetConfig: WidgetConfig = {};
+
+      const result = await widget.render(mockInput, widgetConfig, textConfig);
+
+      expect(stripAnsi(result)).toBe("w:1%");
+    });
+
+    it("should format icon mode with space after icon", async () => {
+      const widget = new WebSearchWidget();
+      const iconConfig: Config = { ...mockBaseConfig, iconMode: "nerdfont" };
+      const widgetConfig: WidgetConfig = {};
+
+      const result = await widget.render(mockInput, widgetConfig, iconConfig);
+
+      // Should have space after the nerd font icon
+      expect(stripAnsi(result)).toMatch(/\uf0ac 1%/);
+    });
+
+    it("should use 'w:' label in text mode (not 'web:')", async () => {
+      const widget = new WebSearchWidget();
+      const textConfig: Config = { ...mockBaseConfig, iconMode: "text" };
+      const widgetConfig: WidgetConfig = {};
+
+      const result = await widget.render(mockInput, widgetConfig, textConfig);
+
+      // Should use shortened label
+      expect(stripAnsi(result)).toContain("w:");
+      // Should NOT use old longer label
+      expect(stripAnsi(result)).not.toContain("web:");
+    });
   });
 });

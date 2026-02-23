@@ -8,10 +8,11 @@
 import type { Widget, WidgetConfig, ClaudeCodeInput, Config } from "../types.js";
 import { BaseWidget } from "../widget.js";
 import { getGLMQuota, findQuotaLimit, type GLMQuotaLimit } from "../util/glm-api.js";
+import { isTextLabel } from "../util/format.js";
 
 /** Default web search icons */
 const DEFAULT_ICON = "\u{f0ac}";      // Nerd Font: nf-fa-globe
-const TEXT_CONTENT_ICON = "web:";      // Text mode
+const TEXT_CONTENT_ICON = "w:";        // Text mode (shortened from "web:")
 const EMOJI_ICON = "🌐";                // Emoji: globe
 
 /** MCP usage limit type in GLM API */
@@ -49,13 +50,16 @@ function formatWebSearchQuota(
     return colorFn ? colorFn(result) : result;
   }
 
+  // Use conditional spacing based on whether icon is a text label
+  const separator = isTextLabel(icon) ? "" : " ";
+
   if (format === "detailed") {
-    const result = `${icon}${percentage}% (${currentUsage}/${total})`;
+    const result = `${icon}${separator}${percentage}% (${currentUsage}/${total})`;
     return colorFn ? colorFn(result) : result;
   }
 
   // Compact format (default)
-  const result = `${icon}${percentage}%`;
+  const result = `${icon}${separator}${percentage}%`;
   return colorFn ? colorFn(result) : result;
 }
 

@@ -6,12 +6,14 @@ import {
   cleanStaleDirectories,
 } from "../../src/util/task-tracker.ts";
 import { existsSync, mkdirSync, rmSync, writeFileSync, lstatSync } from "fs";
-import { tmpdir } from "os";
 import { join } from "path";
+
+// Use /tmp directly to match task-tracker.ts (not os.tmpdir() which differs on macOS)
+const TMP_BASE = "/tmp";
 
 describe("task-tracker", () => {
   const testSessionId = "test-session-123";
-  const testDir = join(tmpdir(), `claude-sl-${testSessionId}`);
+  const testDir = join(TMP_BASE, `claude-sl-${testSessionId}`);
 
   beforeEach(() => {
     // Clean up before each test
@@ -30,7 +32,7 @@ describe("task-tracker", () => {
   describe("getSessionDir", () => {
     it("returns correct path for session directory", () => {
       const result = getSessionDir("my-session");
-      expect(result).toBe(join(tmpdir(), "claude-sl-my-session"));
+      expect(result).toBe(join(TMP_BASE, "claude-sl-my-session"));
     });
   });
 
@@ -111,10 +113,10 @@ describe("task-tracker", () => {
 
   describe("cleanStaleDirectories", () => {
     const staleSessionId = "stale-session";
-    const staleDir = join(tmpdir(), `claude-sl-${staleSessionId}`);
+    const staleDir = join(TMP_BASE, `claude-sl-${staleSessionId}`);
     const freshSessionId = "fresh-session";
-    const freshDir = join(tmpdir(), `claude-sl-${freshSessionId}`);
-    const nonClaudeDir = join(tmpdir(), "other-directory");
+    const freshDir = join(TMP_BASE, `claude-sl-${freshSessionId}`);
+    const nonClaudeDir = join(TMP_BASE, "other-directory");
 
     beforeEach(() => {
       // Clean up any existing test directories

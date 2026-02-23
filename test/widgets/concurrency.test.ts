@@ -4,14 +4,16 @@
 
 import { describe, it, expect, beforeEach, afterEach } from "bun:test";
 import { mkdirSync, rmSync, writeFileSync } from "fs";
-import { tmpdir } from "os";
 import { join } from "path";
 import { ConcurrencyWidget } from "../../src/widgets/concurrency.ts";
 import type { ClaudeCodeInput, Config } from "../../src/types.ts";
 
+// Use /tmp directly to match task-tracker.ts (not os.tmpdir() which differs on macOS)
+const TMP_BASE = "/tmp";
+
 describe("ConcurrencyWidget with task tracking", () => {
   const testSessionId = "test-conc-session";
-  const testDir = join(tmpdir(), `claude-sl-${testSessionId}`);
+  const testDir = join(TMP_BASE, `claude-sl-${testSessionId}`);
 
   beforeEach(() => {
     // Clean up and create fresh test directory
