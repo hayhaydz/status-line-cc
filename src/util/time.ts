@@ -23,6 +23,24 @@ export const ANCHOR_DATE = new Date("2026-02-21T21:23:00Z");
 /** China timezone offset from UTC in hours */
 export const CHINA_TIMEZONE_OFFSET = 8;
 
+/** Start of anchor day (2026-02-21 00:00 UTC) */
+const ANCHOR_DAY_START = new Date("2026-02-21T00:00:00Z");
+
+/** Milliseconds in a day */
+const MS_PER_DAY = 24 * 60 * 60 * 1000;
+
+/**
+ * Get days since anchor (mod 5 for cycle position)
+ *
+ * @param date - The date to calculate from
+ * @returns Days since anchor (0-4, cycles every 5 days)
+ */
+export function getDaysSinceAnchor(date: Date): number {
+  const diffMs = date.getTime() - ANCHOR_DAY_START.getTime();
+  const days = Math.floor(diffMs / MS_PER_DAY);
+  return ((days % CYCLE_DAYS) + CYCLE_DAYS) % CYCLE_DAYS; // Handle negative values
+}
+
 /**
  * Get current time in China timezone (UTC+8)
  *

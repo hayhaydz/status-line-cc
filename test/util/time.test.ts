@@ -10,7 +10,7 @@
  */
 
 import { describe, it, expect } from "bun:test";
-import { getCurrentBlockStart, getCurrentBlockEnd, getTimeRemaining, BLOCK_OFFSET_MINUTES, ANCHOR_DATE, CYCLE_DAYS } from "../../src/util/time.ts";
+import { getCurrentBlockStart, getCurrentBlockEnd, getTimeRemaining, BLOCK_OFFSET_MINUTES, ANCHOR_DATE, CYCLE_DAYS, getDaysSinceAnchor } from "../../src/util/time.ts";
 
 describe("getCurrentBlockStart", () => {
   // UTC 10:30 = China 18:30 → Block started at China 15:23 = UTC 07:23
@@ -149,5 +149,43 @@ describe("ANCHOR_DATE", () => {
 describe("CYCLE_DAYS", () => {
   it("is 5 days", () => {
     expect(CYCLE_DAYS).toBe(5);
+  });
+});
+
+describe("getDaysSinceAnchor", () => {
+  it("returns 0 for anchor date", () => {
+    const result = getDaysSinceAnchor(new Date("2026-02-21T00:00:00Z"));
+    expect(result).toBe(0);
+  });
+
+  it("returns 1 for day after anchor", () => {
+    const result = getDaysSinceAnchor(new Date("2026-02-22T00:00:00Z"));
+    expect(result).toBe(1);
+  });
+
+  it("returns 2 for Feb 23", () => {
+    const result = getDaysSinceAnchor(new Date("2026-02-23T00:00:00Z"));
+    expect(result).toBe(2);
+  });
+
+  it("returns 4 for Feb 25", () => {
+    const result = getDaysSinceAnchor(new Date("2026-02-25T00:00:00Z"));
+    expect(result).toBe(4);
+  });
+
+  it("returns 0 for Feb 26 (cycle repeats)", () => {
+    const result = getDaysSinceAnchor(new Date("2026-02-26T00:00:00Z"));
+    expect(result).toBe(0);
+  });
+
+  it("returns 1 for Feb 27 (day 6 = day 1 in cycle)", () => {
+    const result = getDaysSinceAnchor(new Date("2026-02-27T00:00:00Z"));
+    expect(result).toBe(1);
+  });
+
+  it("handles time within day correctly", () => {
+    // Any time on Feb 21 is day 0
+    const result = getDaysSinceAnchor(new Date("2026-02-21T23:59:59Z"));
+    expect(result).toBe(0);
   });
 });
