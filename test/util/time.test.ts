@@ -102,6 +102,14 @@ describe("getCurrentBlockStart (drifting schedule)", () => {
     expect(result.getUTCHours()).toBe(16); // Previous block
     expect(result.getUTCMinutes()).toBe(23);
   });
+
+  it("Feb 25 at 22:30 is in block that started at 22:23", () => {
+    // Day 4 (Feb 25): resets at 02:23, 07:23, 12:23, 17:23, 22:23
+    const result = getCurrentBlockStart(new Date("2026-02-25T22:30:00Z"));
+    expect(result.getUTCHours()).toBe(22);
+    expect(result.getUTCMinutes()).toBe(23);
+    expect(result.getUTCDate()).toBe(25);
+  });
 });
 
 describe("getCurrentBlockEnd", () => {

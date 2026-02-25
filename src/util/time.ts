@@ -42,19 +42,32 @@ export function getDaysSinceAnchor(date: Date): number {
 }
 
 /**
- * Get all reset hours for a given day (as hours since midnight UTC)
+ * Get the first reset hour for a given day
  *
- * Day offset shifts the base time: baseHour = 21 - dayOffset
- * Then all resets are at baseHour-20, baseHour-15, baseHour-10, baseHour-5, baseHour (mod 24)
+ * The first reset hour follows the pattern: 1, 0, 4, 3, 2 (repeating every 5 days)
+ * Formula: firstHour = (1 - dayOffset + 5) % 5
  *
  * @param dayOffset - Days since anchor (0-4)
- * @returns Array of hours (0-23) for reset times, sorted ascending
+ * @returns The first reset hour (0-4)
+ */
+function getFirstResetHour(dayOffset: number): number {
+  return (1 - dayOffset + 5) % 5;
+}
+
+/**
+ * Get all reset hours for a given day (as hours since midnight UTC)
+ *
+ * The first reset hour follows the pattern: 1, 0, 4, 3, 2 (repeating every 5 days)
+ * Then all 5 resets are at firstHour, firstHour+5, firstHour+10, firstHour+15, firstHour+20 (mod 24)
+ *
+ * @param dayOffset - Days since anchor (0-4)
+ * @returns Array of hours (0-23) for reset times, sorted
  */
 function getResetHoursForDay(dayOffset: number): number[] {
-  const baseHour = 21 - dayOffset;
-  // Use negative offsets to get the correct pattern
-  // e.g., for baseHour=21: [1, 6, 11, 16, 21]
-  return [-20, -15, -10, -5, 0].map(offset => (baseHour + offset + 24) % 24).sort((a, b) => a - b);
+  const firstHour = getFirstResetHour(dayOffset);
+  return [0, 5, 10, 15, 20]
+    .map(offset => (firstHour + offset) % 24)
+    .sort((a, b) => a - b);
 }
 
 /**
@@ -77,12 +90,23 @@ export function getCurrentBlockStart(date: Date = new Date()): Date {
   let blockStartDayOffset = 0;
 
   // Check if we're before the first reset of the day
-  const firstResetMinutes = resetHours[0] * 60 + 23;
+  const firstHour = getFirstResetHour(dayOffset);
+  const firstResetMinutes = firstHour * 60 + 23;
   if (currentTimeInMinutes < firstResetMinutes) {
     // We're in a block that started on the previous day
     const prevDayOffset = (dayOffset - 1 + CYCLE_DAYS) % CYCLE_DAYS;
+    const prevFirstHour = getFirstResetHour(prevDayOffset);
     const prevResetHours = getResetHoursForDay(prevDayOffset);
-    blockStartHour = prevResetHours[prevResetHours.length - 1]; // Last reset of previous day
+
+    // Find the last "same day" reset (not a "next day" reset)
+    // A "next day" reset has hour < firstHour (it belongs to the next calendar day)
+    blockStartHour = prevResetHours[prevResetHours.length - 1];
+    for (let i = prevResetHours.length - 1; i >= 0; i--) {
+      if (prevResetHours[i] >= prevFirstHour) {
+        blockStartHour = prevResetHours[i];
+        break;
+      }
+    }
     blockStartDayOffset = -1;
   } else {
     // Find the most recent reset today
