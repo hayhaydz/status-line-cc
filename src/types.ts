@@ -47,8 +47,8 @@ export interface Widget {
   /** Widget name (identifier) */
   readonly name: string;
 
-  /** Render the widget and return formatted string */
-  render(input: ClaudeCodeInput, config: WidgetConfig, globalConfig?: Config): Promise<string>;
+  /** Render the widget and return formatted string, or null if no data */
+  render(input: ClaudeCodeInput, config: WidgetConfig, globalConfig?: Config): Promise<string | null>;
 
   /** Check if widget is enabled */
   isEnabled(config: WidgetConfig): boolean;
@@ -60,15 +60,6 @@ export interface Widget {
 export interface WidgetConfig {
   /** Enable/disable this widget */
   enabled?: boolean;
-
-  /** Custom icon/label */
-  icon?: string;
-
-  /** Display format (compact, detailed, minimal) */
-  format?: "compact" | "detailed" | "minimal";
-
-  /** Widget-specific options */
-  options?: Record<string, unknown>;
 }
 
 /**
@@ -91,15 +82,6 @@ export interface CacheEntry<T> {
 export interface Config {
   /** Enable/disable the statusline globally or per-project */
   enabled?: boolean;
-
-  /** Global output format */
-  format?: "compact" | "detailed" | "minimal";
-
-  /** Icon display mode */
-  iconMode?: IconMode;
-
-  /** Theme name for color scheme */
-  theme?: string;
 
   /** Enable debug logging */
   verbose?: boolean;
@@ -173,8 +155,8 @@ export interface WidgetResult {
   /** Widget name */
   name: string;
 
-  /** Formatted output string */
-  output: string;
+  /** Formatted output string (null if widget returned no data) */
+  output: string | null;
 
   /** Render duration (milliseconds) */
   duration: number;
@@ -182,14 +164,6 @@ export interface WidgetResult {
   /** Error if rendering failed */
   error?: Error;
 }
-
-/**
- * Output format options
- */
-export type OutputFormat = "compact" | "detailed" | "minimal" | "multiline";
-
-/** Icon display mode */
-export type IconMode = "text" | "emoji" | "nerdfont";
 
 /**
  * Git status information
