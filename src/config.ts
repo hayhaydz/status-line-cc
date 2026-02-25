@@ -17,9 +17,6 @@ import { warn } from "./util/logger.js";
 
 /** Default configuration */
 export const DEFAULTS: Config = {
-  format: "compact",
-  iconMode: "text",
-  theme: "monochrome",
   verbose: false,
   cacheTTL: {
     glm: 5 * 60 * 1000, // 5 minutes
@@ -200,17 +197,8 @@ export async function loadConfig(cwd?: string): Promise<Config> {
  */
 export function getWidgetConfig(
   config: Config,
-  widgetName: string,
-  defaults: Partial<WidgetConfig> = {}
+  widgetName: string
 ): WidgetConfig {
-  const widgetConfig = config.widgets?.[widgetName] ?? {};
-
-  return {
-    enabled: defaults.enabled ?? true,
-    format: defaults.format ?? config.format ?? "compact",
-    icon: defaults.icon,
-    options: defaults.options ?? {},
-    ...widgetConfig,
-  };
+  return config.widgets?.[widgetName] ?? { enabled: true };
 }
 
