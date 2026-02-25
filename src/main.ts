@@ -21,10 +21,6 @@ import type { ClaudeCodeInput, OutputFormat, Config } from "./types.ts";
 import { error as logError } from "./util/logger.ts";
 import { handleCliCommand } from "./cli.ts";
 import { cleanStaleDirectories } from "./util/task-tracker.js";
-import "./themes/index.js";
-import "./themes/nord.js";
-import "./themes/tokyonight.js";
-import "./themes/monochrome.js";
 
 /**
  * Register all available widgets
