@@ -15,7 +15,7 @@ import { ContextWidget } from "./widgets/context.ts";
 import { BlockWidget } from "./widgets/block.ts";
 import { GLMWidget } from "./widgets/glm.ts";
 import { CacheWidget } from "./widgets/cache.ts";
-import { WebSearchWidget } from "./widgets/websearch.ts";
+import { ToolsWidget } from "./widgets/tools.ts";
 import type { ClaudeCodeInput, OutputFormat, Config } from "./types.ts";
 import { error as logError } from "./util/logger.ts";
 import { handleCliCommand } from "./cli.ts";
@@ -31,7 +31,7 @@ function registerAllWidgets(): void {
   registerWidget(new CacheWidget());
   registerWidget(new BlockWidget());
   registerWidget(new GLMWidget());
-  registerWidget(new WebSearchWidget());
+  registerWidget(new ToolsWidget());
 }
 
 /**
