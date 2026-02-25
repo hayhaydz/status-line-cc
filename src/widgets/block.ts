@@ -1,8 +1,9 @@
 /**
  * Block Widget
  *
- * Displays 5-hour block time remaining using fixed UTC schedule.
- * Block reset times: 00:00, 05:00, 10:00, 15:00, 20:00 UTC.
+ * Displays 5-hour block time remaining using drifting 5-day rotation.
+ * Schedule drifts backward by 1 hour each day (24 not divisible by 5).
+ * Anchor: 2026-02-21 @ 21:23 UTC
  */
 
 import type { Widget, WidgetConfig, ClaudeCodeInput, Config } from "../types.js";
