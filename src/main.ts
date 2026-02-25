@@ -13,7 +13,6 @@ import { GitWidget } from "./widgets/git.ts";
 import { ModelWidget } from "./widgets/model.ts";
 import { ContextWidget } from "./widgets/context.ts";
 import { BlockWidget } from "./widgets/block.ts";
-import { CacheWidget } from "./widgets/cache.ts";
 import { ToolsWidget } from "./widgets/tools.ts";
 import type { ClaudeCodeInput, OutputFormat, Config } from "./types.ts";
 import { error as logError } from "./util/logger.ts";
@@ -27,7 +26,6 @@ function registerAllWidgets(): void {
   registerWidget(new GitWidget());
   registerWidget(new ModelWidget());
   registerWidget(new ContextWidget());
-  registerWidget(new CacheWidget());
   registerWidget(new BlockWidget());
   registerWidget(new ToolsWidget());
 }

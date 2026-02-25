@@ -1,31 +1,26 @@
 /**
  * Context Widget
  *
- * Reads actual token usage from transcript.jsonl to show context window utilization.
- * Displays exact token count (e.g., t:153k) instead of percentage.
+ * Displays context window utilization with cache percentage.
+ * Reads token usage from transcript.jsonl and cache from context_window.current_usage.
  */
 
 import { readFile } from "node:fs/promises";
-import { existsSync } from "node:fs";
-import type { Widget, WidgetConfig, ClaudeCodeInput, Config } from "../types.js";
+import { readFileSync, writeFileSync, existsSync } from "node:fs";
+import type { WidgetConfig, ClaudeCodeInput, Config } from "../types.js";
 import { BaseWidget } from "../widget.js";
 import { debug } from "../util/logger.js";
-import { formatWidgetValue } from "../util/format.js";
-
-/** Default context icons */
-const DEFAULT_ICON = "\uf49b";      // Nerd Font: nf-mdi-flash
-const TEXT_CONTENT_ICON = "t:";     // Text mode (t for tokens)
-const EMOJI_ICON = "⚡";            // Emoji: high voltage
 
 /** Default context limit if not provided in input */
 const DEFAULT_CONTEXT_LIMIT = 200_000;
 
+/** File to store last known cache percentage */
+const CACHE_STATE_FILE = "/tmp/claude-sl-cache-state.txt";
+
 /**
  * Get context limit from input, with fallback
- * Prefers context_window_size from input as it's the authoritative source.
  */
 function getContextLimit(input: ClaudeCodeInput): number {
-  // Use context_window_size from input if available (most reliable)
   if (input.context_window?.context_window_size) {
     return input.context_window.context_window_size;
   }
@@ -33,12 +28,7 @@ function getContextLimit(input: ClaudeCodeInput): number {
 }
 
 /**
- * Format token count for display
- *
- * Converts large numbers to compact format:
- * - 153000 -> "153k"
- * - 1200 -> "1.2k"
- * - 500 -> "500"
+ * Format token count for display (153000 -> "153k", 1200 -> "1.2k")
  */
 function formatTokenCount(tokens: number): string {
   if (tokens >= 1_000_000) {
@@ -50,6 +40,48 @@ function formatTokenCount(tokens: number): string {
     return `${val % 1 === 0 ? Math.round(val) : val.toFixed(1)}k`;
   }
   return String(tokens);
+}
+
+/**
+ * Extract cached tokens from input
+ */
+function extractCachedTokens(input: ClaudeCodeInput): number {
+  const current = input.context_window?.current_usage;
+  if (!current) return -1;
+
+  const creation = current.cache_creation_input_tokens ?? 0;
+  const read = current.cache_read_input_tokens ?? 0;
+  return creation + read;
+}
+
+/**
+ * Calculate cache as percentage of context limit
+ */
+function calculatePercentage(tokens: number, limit: number): number {
+  if (limit === 0) return 0;
+  return Math.min(100, Math.round((tokens / limit) * 100));
+}
+
+/**
+ * Save/load cache state for persistence
+ */
+function saveCacheState(percentage: number): void {
+  try {
+    writeFileSync(CACHE_STATE_FILE, String(percentage), "utf-8");
+  } catch { /* ignore */ }
+}
+
+function loadCacheState(): number | null {
+  try {
+    if (existsSync(CACHE_STATE_FILE)) {
+      const content = readFileSync(CACHE_STATE_FILE, "utf-8").trim();
+      const value = parseInt(content, 10);
+      if (!isNaN(value) && value >= 0 && value <= 100) {
+        return value;
+      }
+    }
+  } catch { /* ignore */ }
+  return null;
 }
 
 /**
@@ -74,8 +106,6 @@ interface TranscriptMessage {
 
 /**
  * Extract token usage from the last assistant message in transcript
- *
- * Returns input_tokens + cache_read_input_tokens for total context usage.
  */
 async function getLastAssistantTokenCount(transcriptPath: string): Promise<number> {
   try {
@@ -87,27 +117,23 @@ async function getLastAssistantTokenCount(transcriptPath: string): Promise<numbe
     const content = await readFile(transcriptPath, "utf-8");
     const lines = content.split("\n").filter(Boolean);
 
-    // Find the last assistant message with usage data
-    // Read from end to start for efficiency
     for (let i = lines.length - 1; i >= 0; i--) {
       try {
         const msg: TranscriptMessage = JSON.parse(lines[i]);
 
         if (msg.type === "assistant" && msg.message?.usage) {
           const usage = msg.message.usage;
-          // Total input context = new tokens + cached tokens
           const totalInput =
             (usage.input_tokens ?? 0) +
             (usage.cache_read_input_tokens ?? 0) +
             (usage.cache_creation_input_tokens ?? 0);
 
           if (totalInput > 0) {
-            debug(`Found usage: input=${usage.input_tokens}, cache_read=${usage.cache_read_input_tokens}, total=${totalInput}`);
+            debug(`Found usage: total=${totalInput}`);
             return totalInput;
           }
         }
       } catch {
-        // Skip malformed lines
         continue;
       }
     }
@@ -121,54 +147,46 @@ async function getLastAssistantTokenCount(transcriptPath: string): Promise<numbe
 }
 
 /**
- * Format context display
- */
-function formatContext(
-  tokens: number,
-  limit: number,
-  config: WidgetConfig,
-  icon: string,
-  colorFn?: (text: string) => string
-): string {
-  const formattedTokens = formatTokenCount(tokens);
-  const formattedLimit = formatTokenCount(limit);
-
-  // Show as "tokens/limit" format
-  const value = formatWidgetValue(`${formattedTokens}/${formattedLimit}`, icon, config, {
-    short: "",
-    long: "t",
-  }, colorFn);
-
-  return value;
-}
-
-/**
- * Context Widget
+ * Context Widget - shows token usage and cache percentage
  */
 export class ContextWidget extends BaseWidget {
   readonly name = "context";
-  protected defaultIcon = DEFAULT_ICON;
-  protected textContentIcon = TEXT_CONTENT_ICON;
-  protected emojiIcon = EMOJI_ICON;
 
-  async render(input: ClaudeCodeInput, config: WidgetConfig, globalConfig?: Config): Promise<string> {
+  async render(input: ClaudeCodeInput, config: WidgetConfig, globalConfig?: Config): Promise<string | null> {
     const transcriptPath = input.transcript_path;
 
     if (!transcriptPath) {
-      return "";
+      return null;
     }
 
     const limit = getContextLimit(input);
-
     const tokens = await getLastAssistantTokenCount(transcriptPath);
 
     if (tokens === 0) {
-      return "";
+      return null;
     }
 
-    const icon = this.getIcon(config, globalConfig);
-    const colorFn = (text: string) => this.formatWithColor(text, globalConfig);
+    const used = formatTokenCount(tokens);
+    const total = formatTokenCount(limit);
 
-    return formatContext(tokens, limit, config, icon, colorFn);
+    let output = `${used}/${total}`;
+
+    // Add cache percentage if available
+    const cached = extractCachedTokens(input);
+    let cachePercentage: number;
+
+    if (cached >= 0) {
+      cachePercentage = calculatePercentage(cached, limit);
+      saveCacheState(cachePercentage);
+    } else {
+      const lastKnown = loadCacheState();
+      cachePercentage = lastKnown ?? 0;
+    }
+
+    if (cachePercentage > 0) {
+      output += ` [${cachePercentage}%]`;
+    }
+
+    return output;
   }
 }
