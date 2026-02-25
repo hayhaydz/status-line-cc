@@ -1,113 +1,18 @@
 /**
- * Format utility for widgets
+ * Format utility for status line output
  *
- * Provides standardized formatting functions for widget output.
- * Eliminates duplication across multiple widgets.
+ * Simple joiner for widget values with " | " separator.
  */
-
-import type { WidgetConfig } from "../types.js";
 
 /**
- * Check if the icon is a text label (ends with colon)
- * Text labels get no space before value, icons get a space
+ * Format widget outputs into final status line
  *
- * @param icon - The icon string to check
- * @returns true if the icon is a text label (ends with ':')
+ * Joins non-empty, non-null values with " | " separator.
+ * Filters out null and empty string values.
  *
- * @example
- * ```ts
- * isTextLabel("g:")      // true
- * isTextLabel("\ue725")  // false
- * isTextLabel("🌿")      // false
- * ```
+ * @param values - Array of widget outputs (string, null, or empty)
+ * @returns Joined status line string
  */
-export function isTextLabel(icon: string): boolean {
-  return icon.endsWith(':');
-}
-
-/**
- * Label options for formatWidgetValue
- */
-export interface LabelOptions {
-  /** Short label (used in compact mode) */
-  short: string;
-  /** Long label (used in detailed mode) */
-  long: string;
-}
-
-/**
- * Format widget value with labels
- *
- * Formats output based on the configured format:
- * - minimal: value only (e.g., "50%")
- * - compact: icon + short label + value (e.g., "\uf017blk:50%")
- * - detailed: icon + long label + value (e.g., "\uf017block:50%")
- *
- * If labels are empty strings, only icon and value are used.
- *
- * @param value - The formatted value string (e.g., "50%", "2h15m")
- * @param icon - Widget icon (e.g., "\uf017")
- * @param config - Widget configuration with format option
- * @param labels - Label options for short/long variants
- * @param colorFn - Optional color function to apply colors
- * @returns Formatted string
- */
-export function formatWidgetValue(
-  value: string,
-  icon: string,
-  config: WidgetConfig,
-  labels: LabelOptions,
-  colorFn?: (text: string) => string
-): string {
-  const format = config.format ?? "compact";
-
-  if (format === "minimal") {
-    return colorFn ? colorFn(value) : value;
-  }
-
-  const label = format === "detailed" ? labels.long : labels.short;
-
-  // If label is empty, omit the label
-  if (label === "") {
-    const separator = isTextLabel(icon) ? "" : " ";
-    const result = `${icon}${separator}${value}`;
-    return colorFn ? colorFn(result) : result;
-  }
-
-  // Use conditional spacing based on whether icon is a text label
-  const separator = isTextLabel(icon) ? "" : " ";
-  const result = `${icon}${separator}${label}:${value}`;
-  return colorFn ? colorFn(result) : result;
-}
-
-/**
- * Format widget value without labels (icon + value only)
- *
- * Simplified version for widgets that don't need labels.
- * Formats output based on the configured format:
- * - minimal: value only (e.g., "50%")
- * - compact: icon + value (e.g., "\uf01750%")
- * - detailed: icon + value (same as compact)
- *
- * @param value - The formatted value string (e.g., "50%", "2h15m")
- * @param icon - Widget icon (e.g., "\uf017")
- * @param config - Widget configuration with format option
- * @param colorFn - Optional color function to apply colors
- * @returns Formatted string
- */
-export function formatWidgetValueSimple(
-  value: string,
-  icon: string,
-  config: WidgetConfig,
-  colorFn?: (text: string) => string
-): string {
-  const format = config.format ?? "compact";
-
-  if (format === "minimal") {
-    return colorFn ? colorFn(value) : value;
-  }
-
-  const separator = isTextLabel(icon) ? "" : " ";
-  const result = `${icon}${separator}${value}`;
-  return colorFn ? colorFn(result) : result;
+export function formatOutput(values: (string | null)[]): string {
+  return values.filter(v => v !== null && v !== "").join(" | ");
 }
