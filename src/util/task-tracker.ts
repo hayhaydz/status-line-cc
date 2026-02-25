@@ -1,5 +1,6 @@
 import { existsSync, readdirSync, lstatSync, rmSync } from "fs";
 import { join } from "path";
+import { execFileSync } from "child_process";
 
 /**
  * Directory prefix for Claude status line session directories.
@@ -14,10 +15,9 @@ const DIR_PREFIX = "claude-sl-";
 const TMP_BASE = "/tmp";
 
 /**
- * Delimiter used in task filenames to separate model ID from tool use ID.
- * Format: <model-id>-call_<tool-use-id>
+ * Path to the task-tracker.sh script.
  */
-const TASK_DELIMITER = "-call_";
+const TASK_TRACKER_SCRIPT = `${process.env.HOME}/.claude/statusline-hyz-cc.d/task-tracker.sh`;
 
 /**
  * Stale directory threshold in milliseconds (24 hours).
@@ -34,59 +34,56 @@ export function getSessionDir(sessionId: string): string {
 }
 
 /**
- * Count active tasks for a specific model in a session.
- * @param sessionId - The session identifier
- * @param modelId - The model ID to count tasks for
- * @returns The number of active tasks for the model
+ * Count total active subagent tasks in a session.
+ * @param sessionId - The session identifier (unused, kept for API compatibility)
+ * @returns The number of active subagent tasks
  */
-export function getActiveTaskCount(sessionId: string, modelId: string): number {
-  const sessionDir = getSessionDir(sessionId);
-
-  if (!existsSync(sessionDir)) {
-    return 0;
+export function getActiveTaskCount(sessionId: string): number {
+  const result = getActiveTasksByModel(sessionId);
+  let total = 0;
+  for (const count of result.values()) {
+    total += count;
   }
-
-  try {
-    const files = readdirSync(sessionDir);
-    const prefix = `${modelId}${TASK_DELIMITER}`;
-
-    return files.filter((file) => file.startsWith(prefix)).length;
-  } catch {
-    // Directory may have been deleted between check and read
-    return 0;
-  }
+  return total;
 }
 
 /**
  * Get all active tasks grouped by model.
- * @param sessionId - The session identifier
+ * Uses the task-tracker.sh count command which returns "model1:count1,model2:count2" or "0".
+ * @param sessionId - The session identifier (unused, kept for API compatibility)
  * @returns A Map where keys are model IDs and values are task counts
  */
 export function getActiveTasksByModel(sessionId: string): Map<string, number> {
   const result = new Map<string, number>();
-  const sessionDir = getSessionDir(sessionId);
-
-  if (!existsSync(sessionDir)) {
-    return result;
-  }
 
   try {
-    const files = readdirSync(sessionDir);
+    // Call task-tracker.sh count to get model counts
+    const output = execFileSync(TASK_TRACKER_SCRIPT, ["count"], {
+      encoding: "utf-8",
+      timeout: 1000,
+    }).trim();
 
-    for (const file of files) {
-      const delimiterIndex = file.indexOf(TASK_DELIMITER);
-      if (delimiterIndex === -1) {
-        continue;
+    if (output === "0" || output === "") {
+      return result;
+    }
+
+    // Parse "model1:count1,model2:count2" format
+    const pairs = output.split(",");
+    for (const pair of pairs) {
+      const colonIndex = pair.indexOf(":");
+      if (colonIndex > 0) {
+        const modelId = pair.slice(0, colonIndex).trim();
+        const countStr = pair.slice(colonIndex + 1).trim();
+        const count = parseInt(countStr, 10);
+        if (!isNaN(count) && count > 0) {
+          result.set(modelId, count);
+        }
       }
-
-      const modelId = file.slice(0, delimiterIndex);
-      const currentCount = result.get(modelId) ?? 0;
-      result.set(modelId, currentCount + 1);
     }
 
     return result;
   } catch {
-    // Directory may have been deleted between check and read
+    // Script may not exist or failed
     return result;
   }
 }

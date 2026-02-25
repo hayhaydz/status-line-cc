@@ -2,7 +2,7 @@
  * Model Widget
  *
  * Displays the current model name with concurrency multiplier.
- * Includes subagent info when tasks are running.
+ * Includes subagent info when tasks are running, grouped by model.
  */
 
 import type { WidgetConfig, ClaudeCodeInput, Config } from "../types.js";
@@ -25,11 +25,30 @@ const MODEL_NAMES: Record<string, string> = {
   "glm-4.5-air": "GLM-4.5-air",
 };
 
+/** Short names for subagent display */
+const MODEL_SHORT_NAMES: Record<string, string> = {
+  "claude-opus-4-6": "Op",
+  "claude-sonnet-4-6": "Sn",
+  "claude-haiku-4-5-20251001": "Hk",
+  "glm-4.5": "4.5",
+  "glm-4.6": "4.6",
+  "glm-4.7": "4.7",
+  "glm-5": "5",
+  "glm-4.5-air": "Air",
+};
+
 /**
  * Get display name for model
  */
 function getDisplayName(modelId: string): string {
   return MODEL_NAMES[modelId] ?? modelId.split("/").pop() ?? modelId;
+}
+
+/**
+ * Get short name for model (for subagent display)
+ */
+function getShortName(modelId: string): string {
+  return MODEL_SHORT_NAMES[modelId] ?? modelId.slice(0, 4);
 }
 
 /**
@@ -40,7 +59,7 @@ function getConcurrencyLimit(modelId: string, config?: Config): number {
 }
 
 /**
- * Model Widget - includes subagent concurrency info
+ * Model Widget - includes subagent concurrency info grouped by model
  */
 export class ModelWidget extends BaseWidget {
   readonly name = "model";
@@ -68,7 +87,7 @@ export class ModelWidget extends BaseWidget {
         const subagentParts: string[] = [];
         for (const [subModelId, active] of Array.from(tasksByModel.entries())) {
           const subLimit = getConcurrencyLimit(subModelId, globalConfig);
-          const subShort = subModelId.replace(/^glm-/, ""); // glm-4.7 -> 4.7
+          const subShort = getShortName(subModelId);
           subagentParts.push(`+${subShort}_${subLimit}x:${active}/${subLimit}`);
         }
         subagentParts.sort();
