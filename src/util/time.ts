@@ -42,60 +42,69 @@ export function getDaysSinceAnchor(date: Date): number {
 }
 
 /**
- * Get current time in China timezone (UTC+8)
+ * Get all reset hours for a given day (as hours since midnight UTC)
  *
- * @param date - The date to convert (defaults to now)
- * @returns Object with China time components
+ * Day offset shifts the base time: baseHour = 21 - dayOffset
+ * Then all resets are at baseHour-20, baseHour-15, baseHour-10, baseHour-5, baseHour (mod 24)
+ *
+ * @param dayOffset - Days since anchor (0-4)
+ * @returns Array of hours (0-23) for reset times, sorted ascending
  */
-function getChinaTime(date: Date = new Date()): { hours: number; minutes: number; totalMs: number } {
-  const utcMs = date.getTime();
-  const chinaMs = utcMs + CHINA_TIMEZONE_OFFSET * 60 * 60 * 1000;
-
-  const chinaDate = new Date(chinaMs);
-  return {
-    hours: chinaDate.getUTCHours(),
-    minutes: chinaDate.getUTCMinutes(),
-    totalMs: chinaMs,
-  };
+function getResetHoursForDay(dayOffset: number): number[] {
+  const baseHour = 21 - dayOffset;
+  // Use negative offsets to get the correct pattern
+  // e.g., for baseHour=21: [1, 6, 11, 16, 21]
+  return [-20, -15, -10, -5, 0].map(offset => (baseHour + offset + 24) % 24).sort((a, b) => a - b);
 }
 
 /**
- * Get current block start time
- *
- * Uses China timezone (UTC+8) with 23-minute offset.
- * Blocks: 00:23, 05:23, 10:23, 15:23, 20:23 China time.
+ * Get current block start time using drifting 5-day rotation
  *
  * @param date - The date to calculate block start for (defaults to now)
  * @returns Date representing the start of the current 5-hour block
  */
 export function getCurrentBlockStart(date: Date = new Date()): Date {
-  const china = getChinaTime(date);
+  const dayOffset = getDaysSinceAnchor(date);
+  const resetHours = getResetHoursForDay(dayOffset);
 
-  // Find block start hour (0, 5, 10, 15, 20)
-  // Adjust for the 23-minute offset: if minutes >= 23, we're in the next block segment
-  let blockStartHour = Math.floor(china.hours / 5) * 5;
+  const currentHour = date.getUTCHours();
+  const currentMinute = date.getUTCMinutes();
+  const currentTimeInMinutes = currentHour * 60 + currentMinute;
 
-  // If current time is before the offset (e.g., 00:00-00:22), we're still in previous block
-  if (china.hours % 5 === 0 && china.minutes < BLOCK_OFFSET_MINUTES) {
-    blockStartHour -= 5;
-    if (blockStartHour < 0) {
-      blockStartHour = 20; // Previous day's last block
+  // Find the most recent reset time
+  // Each reset is at HH:23
+  let blockStartHour: number;
+  let blockStartDayOffset = 0;
+
+  // Check if we're before the first reset of the day
+  const firstResetMinutes = resetHours[0] * 60 + 23;
+  if (currentTimeInMinutes < firstResetMinutes) {
+    // We're in a block that started on the previous day
+    const prevDayOffset = (dayOffset - 1 + CYCLE_DAYS) % CYCLE_DAYS;
+    const prevResetHours = getResetHoursForDay(prevDayOffset);
+    blockStartHour = prevResetHours[prevResetHours.length - 1]; // Last reset of previous day
+    blockStartDayOffset = -1;
+  } else {
+    // Find the most recent reset today
+    blockStartHour = resetHours[0];
+    for (const hour of resetHours) {
+      const resetMinutes = hour * 60 + 23;
+      if (resetMinutes <= currentTimeInMinutes) {
+        blockStartHour = hour;
+      } else {
+        break;
+      }
     }
   }
 
-  // Calculate block start in China time (as ms from epoch)
-  const blockStartChinaMs = china.totalMs
-    - (china.hours * 60 * 60 * 1000)
-    - (china.minutes * 60 * 1000)
-    - date.getUTCSeconds() * 1000
-    - date.getUTCMilliseconds()
-    + (blockStartHour * 60 * 60 * 1000)
-    + (BLOCK_OFFSET_MINUTES * 60 * 1000);
+  // Construct the block start date
+  const blockStart = new Date(date);
+  blockStart.setUTCHours(blockStartHour, 23, 0, 0);
+  if (blockStartDayOffset === -1) {
+    blockStart.setUTCDate(blockStart.getUTCDate() - 1);
+  }
 
-  // Convert back to UTC
-  const blockStartUtcMs = blockStartChinaMs - CHINA_TIMEZONE_OFFSET * 60 * 60 * 1000;
-
-  return new Date(blockStartUtcMs);
+  return blockStart;
 }
 
 /**
