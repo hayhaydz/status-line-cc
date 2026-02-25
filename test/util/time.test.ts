@@ -10,7 +10,7 @@
  */
 
 import { describe, it, expect } from "bun:test";
-import { getCurrentBlockStart, getCurrentBlockEnd, getTimeRemaining, BLOCK_OFFSET_MINUTES } from "../../src/util/time.ts";
+import { getCurrentBlockStart, getCurrentBlockEnd, getTimeRemaining, BLOCK_OFFSET_MINUTES, ANCHOR_DATE, CYCLE_DAYS } from "../../src/util/time.ts";
 
 describe("getCurrentBlockStart", () => {
   // UTC 10:30 = China 18:30 → Block started at China 15:23 = UTC 07:23
@@ -133,5 +133,21 @@ describe("getTimeRemaining", () => {
 describe("BLOCK_OFFSET_MINUTES", () => {
   it("is 23 minutes", () => {
     expect(BLOCK_OFFSET_MINUTES).toBe(23);
+  });
+});
+
+describe("ANCHOR_DATE", () => {
+  it("is 2026-02-21 at 21:23 UTC", () => {
+    expect(ANCHOR_DATE.getUTCFullYear()).toBe(2026);
+    expect(ANCHOR_DATE.getUTCMonth()).toBe(1); // February
+    expect(ANCHOR_DATE.getUTCDate()).toBe(21);
+    expect(ANCHOR_DATE.getUTCHours()).toBe(21);
+    expect(ANCHOR_DATE.getUTCMinutes()).toBe(23);
+  });
+});
+
+describe("CYCLE_DAYS", () => {
+  it("is 5 days", () => {
+    expect(CYCLE_DAYS).toBe(5);
   });
 });

@@ -2,7 +2,10 @@
  * Time utility functions
  *
  * Provides block time calculation for GLM Coding Plan.
- * Block schedule: 5-hour blocks starting at 00:23, 05:23, 10:23, 15:23, 20:23 China time (UTC+8).
+ *
+ * Uses a drifting 5-day rotation cycle anchored to 2026-02-21 @ 21:23 UTC.
+ * Because 24 is not divisible by 5, the schedule drifts backward by 1 hour each day.
+ * The cycle repeats every 5 days (120 hours).
  */
 
 /** Block duration in milliseconds (5 hours) */
@@ -10,6 +13,12 @@ export const BLOCK_DURATION = 5 * 60 * 60 * 1000;
 
 /** Block offset in minutes (blocks start at :23, not :00) */
 export const BLOCK_OFFSET_MINUTES = 23;
+
+/** Rotation cycle length in days */
+export const CYCLE_DAYS = 5;
+
+/** Anchor date: 2026-02-21 @ 21:23 UTC - the reference point for the rotation */
+export const ANCHOR_DATE = new Date("2026-02-21T21:23:00Z");
 
 /** China timezone offset from UTC in hours */
 export const CHINA_TIMEZONE_OFFSET = 8;
