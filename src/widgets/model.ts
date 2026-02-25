@@ -2,19 +2,16 @@
  * Model Widget
  *
  * Displays the current model name with concurrency multiplier.
- * Extracts model info from Claude Code input JSON.
+ * Includes subagent info when tasks are running.
  */
 
-import type { Widget, WidgetConfig, ClaudeCodeInput, Config } from "../types.js";
+import type { WidgetConfig, ClaudeCodeInput, Config } from "../types.js";
 import { BaseWidget } from "../widget.js";
-import { getWidgetConfig } from "../config.js";
 import { extractModelId } from "../util/model.js";
-import { isTextLabel } from "../util/format.js";
+import { getActiveTasksByModel } from "../util/task-tracker.js";
 
-/** Default model icons */
-const DEFAULT_ICON = "\u{e26d}";      // Nerd Font: nf-seti-config
-const TEXT_CONTENT_ICON = "m:";        // Text mode (shortened)
-const EMOJI_ICON = "🤖";                // Emoji: robot face
+/** Default concurrency limit */
+const DEFAULT_CONCURRENCY = 5;
 
 /** Model display name mappings */
 const MODEL_NAMES: Record<string, string> = {
@@ -36,57 +33,49 @@ function getDisplayName(modelId: string): string {
 }
 
 /**
- * Format model display with multiplier
+ * Get concurrency limit for model
  */
-function formatModel(
-  modelId: string,
-  multiplier: number,
-  config: WidgetConfig,
-  icon: string,
-  colorFn?: (text: string) => string
-): string {
-  const format = config.format ?? "compact";
-  const displayName = getDisplayName(modelId);
-
-  if (format === "minimal") {
-    const result = displayName;
-    return colorFn ? colorFn(result) : result;
-  }
-
-  // Conditional: text labels get no parens, icons get parens
-  const isText = isTextLabel(icon);
-  const multiplierSymbol = isText
-    ? `${multiplier}x`           // "3x" for text
-    : `(${multiplier}x)`;        // "(3x)" for icons
-
-  // Conditional spacing: no space for text labels, space for icons
-  const separator = isText ? "" : " ";
-  const result = `${icon}${separator}${displayName} ${multiplierSymbol}`;
-  return colorFn ? colorFn(result) : result;
+function getConcurrencyLimit(modelId: string, config?: Config): number {
+  return config?.concurrencyLimits?.[modelId] ?? DEFAULT_CONCURRENCY;
 }
 
 /**
- * Model Widget
+ * Model Widget - includes subagent concurrency info
  */
 export class ModelWidget extends BaseWidget {
   readonly name = "model";
-  protected defaultIcon = DEFAULT_ICON;
-  protected textContentIcon = TEXT_CONTENT_ICON;
-  protected emojiIcon = EMOJI_ICON;
 
-  async render(input: ClaudeCodeInput, config: WidgetConfig, globalConfig?: Config): Promise<string> {
+  async render(input: ClaudeCodeInput, config: WidgetConfig, globalConfig?: Config): Promise<string | null> {
     const modelId = extractModelId(input);
 
     if (!modelId) {
-      return "";
+      return null;
     }
 
-    // Get multiplier from global config concurrency limits
-    const multiplier = globalConfig?.concurrencyLimits?.[modelId] ?? 1;
+    const displayName = getDisplayName(modelId);
+    const multiplier = getConcurrencyLimit(modelId, globalConfig);
 
-    const icon = this.getIcon(config, globalConfig);
-    const colorFn = (text: string) => this.formatWithColor(text, globalConfig);
+    const parts = [`${displayName} ${multiplier}x`];
 
-    return formatModel(modelId, multiplier, config, icon, colorFn);
+    // Add subagent info if any are running
+    if (input.session_id) {
+      const tasksByModel = getActiveTasksByModel(input.session_id);
+
+      // Remove main model from the map to only show subagent models
+      tasksByModel.delete(modelId);
+
+      if (tasksByModel.size > 0) {
+        const subagentParts: string[] = [];
+        for (const [subModelId, active] of Array.from(tasksByModel.entries())) {
+          const subLimit = getConcurrencyLimit(subModelId, globalConfig);
+          const subShort = subModelId.replace(/^glm-/, ""); // glm-4.7 -> 4.7
+          subagentParts.push(`+${subShort}_${subLimit}x:${active}/${subLimit}`);
+        }
+        subagentParts.sort();
+        parts.push(`[${subagentParts.join(" ")}]`);
+      }
+    }
+
+    return parts.join(" ");
   }
 }

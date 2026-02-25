@@ -11,7 +11,6 @@ import { configureFromConfig as configureLoggerFromConfig } from "./util/logger.
 import { registerWidget, renderWidgets } from "./widget.ts";
 import { GitWidget } from "./widgets/git.ts";
 import { ModelWidget } from "./widgets/model.ts";
-import { ConcurrencyWidget } from "./widgets/concurrency.ts";
 import { ContextWidget } from "./widgets/context.ts";
 import { BlockWidget } from "./widgets/block.ts";
 import { GLMWidget } from "./widgets/glm.ts";
@@ -28,7 +27,6 @@ import { cleanStaleDirectories } from "./util/task-tracker.js";
 function registerAllWidgets(): void {
   registerWidget(new GitWidget());
   registerWidget(new ModelWidget());
-  registerWidget(new ConcurrencyWidget());
   registerWidget(new ContextWidget());
   registerWidget(new CacheWidget());
   registerWidget(new BlockWidget());
