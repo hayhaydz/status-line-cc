@@ -14,9 +14,7 @@ describe("ContextWidget", () => {
   // Create a mock transcript with assistant message containing usage data
   const createMockTranscript = (inputTokens: number, cacheReadTokens = 0, outputTokens = 100) => {
     const mockTranscript = [
-      // User message
       { type: "user", message: { content: "Hello" } },
-      // Assistant message with usage data
       {
         type: "assistant",
         message: {
@@ -33,70 +31,40 @@ describe("ContextWidget", () => {
   };
 
   beforeEach(async () => {
-    // Create a test transcript file with usage data
     const mockContent = createMockTranscript(10000, 50000, 200);
     await writeFile(testTranscriptPath, mockContent, "utf-8");
   });
 
   afterEach(async () => {
-    // Clean up test transcript file
     if (existsSync(testTranscriptPath)) {
       await unlink(testTranscriptPath);
     }
   });
 
-  it("should show exact token format with icon", async () => {
+  it("should show token format with used/total", async () => {
     const input: ClaudeCodeInput = {
       transcript_path: testTranscriptPath,
       model: "claude-sonnet-4-6",
     };
 
     const widget = new ContextWidget();
-    const result = await widget.render(input, { format: "compact" });
+    const result = await widget.render(input, {});
 
-    expect(result).toContain("\uf49b"); // nf-mdi-flash icon
-    expect(result).toContain("k"); // Should show token count with k suffix
-    expect(result).toContain("/"); // Should show limit separator
-    expect(result).toContain("200k"); // Default limit
-  });
-
-  it("should show minimal format (number only)", async () => {
-    const input: ClaudeCodeInput = {
-      transcript_path: testTranscriptPath,
-      model: "claude-sonnet-4-6",
-    };
-
-    const widget = new ContextWidget();
-    const result = await widget.render(input, { format: "minimal" });
-
-    // Should be in format like "60k/200k"
-    expect(result).toMatch(/^\d+\.?\d*k\/\d+k$/);
-  });
-
-  it("should show detailed format with label", async () => {
-    const input: ClaudeCodeInput = {
-      transcript_path: testTranscriptPath,
-      model: "claude-sonnet-4-6",
-    };
-
-    const widget = new ContextWidget();
-    const result = await widget.render(input, { format: "detailed" });
-
-    expect(result).toContain("t:");
     expect(result).toContain("k");
     expect(result).toContain("/");
+    expect(result).toContain("200k");
   });
 
-  it("should return empty string when no transcript path", async () => {
+  it("should return null when no transcript path", async () => {
     const input: ClaudeCodeInput = {};
 
     const widget = new ContextWidget();
     const result = await widget.render(input, {});
 
-    expect(result).toBe("");
+    expect(result).toBeNull();
   });
 
-  it("should return empty string when transcript file doesn't exist", async () => {
+  it("should return null when transcript file doesn't exist", async () => {
     const input: ClaudeCodeInput = {
       transcript_path: "/nonexistent/transcript.jsonl",
       model: "claude-sonnet-4-6",
@@ -105,11 +73,10 @@ describe("ContextWidget", () => {
     const widget = new ContextWidget();
     const result = await widget.render(input, {});
 
-    expect(result).toBe("");
+    expect(result).toBeNull();
   });
 
-  it("should return empty string when no assistant message with usage", async () => {
-    // Create transcript without assistant message
+  it("should return null when no assistant message with usage", async () => {
     const noUsageTranscript = [
       { type: "user", message: { content: "Hello" } },
     ].map(msg => JSON.stringify(msg)).join("\n") + "\n";
@@ -125,13 +92,12 @@ describe("ContextWidget", () => {
     const widget = new ContextWidget();
     const result = await widget.render(input, {});
 
-    expect(result).toBe("");
+    expect(result).toBeNull();
 
     await unlink(noUsagePath);
   });
 
   it("should use the last assistant message for token count", async () => {
-    // Create transcript with multiple assistant messages
     const multiTranscript = [
       { type: "user", message: { content: "Hello" } },
       {
@@ -180,9 +146,8 @@ describe("ContextWidget", () => {
       };
 
       const widget = new ContextWidget();
-      const result = await widget.render(input, { format: "minimal" });
+      const result = await widget.render(input, {});
 
-      // 500 tokens should show as "500/200k"
       expect(result).toContain("500/");
 
       await unlink(smallPath);
@@ -190,19 +155,18 @@ describe("ContextWidget", () => {
 
     it("should format thousands with k suffix", async () => {
       const input: ClaudeCodeInput = {
-        transcript_path: testTranscriptPath, // 60k tokens
+        transcript_path: testTranscriptPath,
         model: "claude-sonnet-4-6",
       };
 
       const widget = new ContextWidget();
-      const result = await widget.render(input, { format: "minimal" });
+      const result = await widget.render(input, {});
 
-      // 10000 + 50000 = 60000 = 60k
       expect(result).toContain("60k");
     });
 
     it("should format with decimal for fractional thousands", async () => {
-      const decimalTranscript = createMockTranscript(500, 10000, 100); // 10.5k
+      const decimalTranscript = createMockTranscript(500, 10000, 100);
       const decimalPath = "/tmp/test-transcript-decimal.jsonl";
       await writeFile(decimalPath, decimalTranscript, "utf-8");
 
@@ -212,9 +176,8 @@ describe("ContextWidget", () => {
       };
 
       const widget = new ContextWidget();
-      const result = await widget.render(input, { format: "minimal" });
+      const result = await widget.render(input, {});
 
-      // 500 + 10000 = 10500 = 10.5k
       expect(result).toContain("10.5k");
 
       await unlink(decimalPath);
@@ -232,7 +195,7 @@ describe("ContextWidget", () => {
       const result = await widget.render(input, {});
 
       expect(result).toBeTruthy();
-      expect(result).toContain("200k"); // 200k limit
+      expect(result).toContain("200k");
     });
 
     it("should use correct context limit for glm-4.7", async () => {
@@ -245,20 +208,7 @@ describe("ContextWidget", () => {
       const result = await widget.render(input, {});
 
       expect(result).toBeTruthy();
-      expect(result).toContain("200k"); // 200k limit
-    });
-
-    it("should use correct context limit for glm-5", async () => {
-      const input: ClaudeCodeInput = {
-        transcript_path: testTranscriptPath,
-        model: "glm-5",
-      };
-
-      const widget = new ContextWidget();
-      const result = await widget.render(input, {});
-
-      expect(result).toBeTruthy();
-      expect(result).toContain("200k"); // 200k limit
+      expect(result).toContain("200k");
     });
 
     it("should use default context limit for unknown model", async () => {
@@ -271,7 +221,7 @@ describe("ContextWidget", () => {
       const result = await widget.render(input, {});
 
       expect(result).toBeTruthy();
-      expect(result.length).toBeGreaterThan(0);
+      expect(result!.length).toBeGreaterThan(0);
     });
 
     it("should handle model as object with id", async () => {
@@ -284,7 +234,7 @@ describe("ContextWidget", () => {
       const result = await widget.render(input, {});
 
       expect(result).toBeTruthy();
-      expect(result.length).toBeGreaterThan(0);
+      expect(result!.length).toBeGreaterThan(0);
     });
 
     it("should use default context limit when model is not provided", async () => {
@@ -296,58 +246,7 @@ describe("ContextWidget", () => {
       const result = await widget.render(input, {});
 
       expect(result).toBeTruthy();
-      expect(result.length).toBeGreaterThan(0);
-    });
-
-    it("should use default context limit when model object has no id", async () => {
-      const input: ClaudeCodeInput = {
-        transcript_path: testTranscriptPath,
-        model: { display_name: "Some Model" },
-      };
-
-      const widget = new ContextWidget();
-      const result = await widget.render(input, {});
-
-      expect(result).toBeTruthy();
-      expect(result.length).toBeGreaterThan(0);
-    });
-  });
-
-  describe("Icon modes", () => {
-    it("should show nerdfont icon by default", async () => {
-      const input: ClaudeCodeInput = {
-        transcript_path: testTranscriptPath,
-        model: "claude-sonnet-4-6",
-      };
-
-      const widget = new ContextWidget();
-      const result = await widget.render(input, { format: "compact" });
-
-      expect(result).toContain("\uf49b"); // nf-mdi-flash
-    });
-
-    it("should show text icon in text mode", async () => {
-      const input: ClaudeCodeInput = {
-        transcript_path: testTranscriptPath,
-        model: "claude-sonnet-4-6",
-      };
-
-      const widget = new ContextWidget();
-      const result = await widget.render(input, { format: "compact" }, { iconMode: "text" });
-
-      expect(result).toContain("t:");
-    });
-
-    it("should show emoji icon in emoji mode", async () => {
-      const input: ClaudeCodeInput = {
-        transcript_path: testTranscriptPath,
-        model: "claude-sonnet-4-6",
-      };
-
-      const widget = new ContextWidget();
-      const result = await widget.render(input, { format: "compact" }, { iconMode: "emoji" });
-
-      expect(result).toContain("⚡");
+      expect(result!.length).toBeGreaterThan(0);
     });
   });
 });

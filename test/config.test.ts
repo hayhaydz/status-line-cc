@@ -7,14 +7,21 @@ import { deepMerge, DEFAULTS } from "../src/config.ts";
 
 describe("Config Utility", () => {
   describe("DEFAULTS", () => {
-    it("should have iconMode set to 'text' for plaintext output", () => {
-      expect(DEFAULTS.iconMode).toBe("text");
+    it("should have verbose set to false", () => {
+      expect(DEFAULTS.verbose).toBe(false);
     });
 
-    it("should have theme set to 'monochrome' for plaintext output", () => {
-      expect(DEFAULTS.theme).toBe("monochrome");
+    it("should have cacheTTL configured", () => {
+      expect(DEFAULTS.cacheTTL).toBeDefined();
+      expect(DEFAULTS.cacheTTL?.glm).toBe(5 * 60 * 1000);
+    });
+
+    it("should have concurrency limits configured", () => {
+      expect(DEFAULTS.concurrencyLimits).toBeDefined();
+      expect(DEFAULTS.concurrencyLimits?.["glm-5"]).toBe(3);
     });
   });
+
   describe("deepMerge", () => {
     it("should merge shallow objects", () => {
       const target = { a: 1, b: 2 };
