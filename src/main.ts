@@ -14,7 +14,7 @@ import { ModelWidget } from "./widgets/model.ts";
 import { ContextWidget } from "./widgets/context.ts";
 import { BlockWidget } from "./widgets/block.ts";
 import { ToolsWidget } from "./widgets/tools.ts";
-import type { ClaudeCodeInput, OutputFormat, Config } from "./types.ts";
+import type { ClaudeCodeInput, Config } from "./types.ts";
 import { error as logError } from "./util/logger.ts";
 import { handleCliCommand } from "./cli.ts";
 import { cleanStaleDirectories } from "./util/task-tracker.js";
@@ -62,43 +62,15 @@ async function readStdin(): Promise<string> {
 }
 
 /**
- * Parse output format from input or config
- *
- * Returns the format and separator to use for widget rendering.
- * Multi-line format uses newline separator with detailed format.
- */
-export function parseOutputFormat(
-  input: ClaudeCodeInput,
-  configFormat?: OutputFormat
-): { format: OutputFormat; separator: string } {
-  // Check input output_style first
-  if (input.output_style?.name) {
-    const style = input.output_style.name.toLowerCase();
-    if (style === "multiline") {
-      return { format: "detailed", separator: "\n" };
-    }
-    if (style === "compact" || style === "detailed" || style === "minimal") {
-      return { format: style as OutputFormat, separator: " | " };
-    }
-  }
-
-  // Fall back to config
-  const format = configFormat ?? "compact";
-  return { format, separator: " | " };
-}
-
-/**
  * Main entry point
  */
 export async function main(): Promise<void> {
   // Check for CLI commands first (before reading stdin)
-  // Get CLI args, skip bun/node executable and script path
   const cliArgs = process.argv.slice(2);
   const processCwd = process.cwd();
 
   const cliHandled = await handleCliCommand(cliArgs, processCwd);
   if (cliHandled) {
-    // CLI command was handled, exit early
     return;
   }
 
@@ -130,17 +102,8 @@ export async function main(): Promise<void> {
   // Configure logger
   configureLoggerFromConfig(config);
 
-  // Parse output format
-  const { format, separator } = parseOutputFormat(input, config.format);
-
   // Render all enabled widgets
-  const output = await renderWidgets(
-    input,
-    config.widgets ?? {},
-    format,
-    separator, // separator between widgets (newline for multiline, pipe for others)
-    config // pass full config for widgets that need global settings
-  );
+  const output = await renderWidgets(input, config.widgets ?? {}, config);
 
   // Write to stdout
   console.log(output);
