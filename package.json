@@ -10,6 +10,7 @@
     "dev": "bun run src/main.ts",
     "test": "bun test",
     "test:fixtures": "bun test test/fixtures.integration.test.ts",
+    "test:scenarios": "bun run scripts/run-hook-scenarios.ts",
     "verify": "bun run build && bun run test:fixtures"
   },
   "keywords": [

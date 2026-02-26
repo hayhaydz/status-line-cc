@@ -1,0 +1,74 @@
+{
+  "name": "Parallel Subagents: GLM-5 + 4.7",
+  "description": "Runs one glm-5 subagent and one glm-4.7 subagent in parallel background state.",
+  "steps": [
+    {
+      "type": "write-project-config",
+      "config": {
+        "widgets": {
+          "git": { "enabled": false },
+          "context": { "enabled": false },
+          "block": { "enabled": false },
+          "tools": { "enabled": false }
+        },
+        "concurrencyLimits": {
+          "glm-5": 3,
+          "glm-4.7": 3,
+          "glm-4.5-air": 5
+        }
+      }
+    },
+    {
+      "type": "hook",
+      "action": "pre-tool",
+      "label": "queue glm-5 subagent",
+      "input": {
+        "session_id": "parallel-5-and-47",
+        "tool_name": "Task",
+        "tool_input": { "model": "glm-5" }
+      }
+    },
+    {
+      "type": "hook",
+      "action": "pre-tool",
+      "label": "queue glm-4.7 subagent",
+      "input": {
+        "session_id": "parallel-5-and-47",
+        "tool_name": "Task",
+        "tool_input": { "model": "glm-4.7" }
+      }
+    },
+    {
+      "type": "hook",
+      "action": "agent-start",
+      "label": "start glm-5 subagent",
+      "input": {
+        "session_id": "parallel-5-and-47",
+        "agent_id": "g5-1"
+      }
+    },
+    {
+      "type": "hook",
+      "action": "agent-start",
+      "label": "start glm-4.7 subagent",
+      "input": {
+        "session_id": "parallel-5-and-47",
+        "agent_id": "g47-1"
+      }
+    },
+    {
+      "type": "render",
+      "label": "main render with both subagents running",
+      "input": {
+        "session_id": "parallel-5-and-47",
+        "model": "glm-4.5-air"
+      },
+      "expect": {
+        "contains": [
+          "+4.7_1x:1/3"
+        ],
+        "regex": ["GLM-4.5-air 1x", "\\+5_[23]x:1/3"]
+      }
+    }
+  ]
+}

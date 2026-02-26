@@ -1,0 +1,74 @@
+{
+  "name": "Multiplier Matrix",
+  "description": "Runs peak/off-peak GLM-5 multiplier variants against the same hook/state flow.",
+  "defaults": {
+    "cwd": "."
+  },
+  "steps": [
+    {
+      "type": "write-project-config",
+      "label": "profile setup",
+      "config": {
+        "widgets": {
+          "git": { "enabled": false },
+          "context": { "enabled": false },
+          "block": { "enabled": false },
+          "tools": { "enabled": false }
+        }
+      }
+    },
+    {
+      "type": "hook",
+      "action": "pre-tool",
+      "input": {
+        "session_id": "demo-session-2",
+        "tool_name": "Task",
+        "tool_input": {
+          "model": "glm-4.5-air"
+        }
+      }
+    },
+    {
+      "type": "hook",
+      "action": "agent-start",
+      "input": {
+        "session_id": "demo-session-2",
+        "agent_id": "agent-A"
+      }
+    },
+    {
+      "type": "render",
+      "label": "forced off-peak output",
+      "env": {
+        "STATUSLINE_GLM5_MULTIPLIER": "2"
+      },
+      "input": {
+        "session_id": "demo-session-2",
+        "model": "glm-5"
+      },
+      "expect": {
+        "contains": [
+          "GLM-5 2x",
+          "+air_1x:1/5"
+        ]
+      }
+    },
+    {
+      "type": "render",
+      "label": "forced peak output",
+      "env": {
+        "STATUSLINE_GLM5_MULTIPLIER": "3"
+      },
+      "input": {
+        "session_id": "demo-session-2",
+        "model": "glm-5"
+      },
+      "expect": {
+        "contains": [
+          "GLM-5 3x",
+          "+air_1x:1/5"
+        ]
+      }
+    }
+  ]
+}

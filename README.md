@@ -171,6 +171,9 @@ bun run build
 # Run tests
 bun test
 
+# Run hook + render simulation scenarios
+bun run test:scenarios
+
 # Detect block reset times (requires GLM API credentials)
 bun run scripts/detect-block-times.ts [hours]
 ```

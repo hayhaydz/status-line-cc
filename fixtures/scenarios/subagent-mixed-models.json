@@ -1,0 +1,50 @@
+{
+  "name": "Subagent Mixed Models",
+  "description": "Queue/start different models and verify mixed multiplier breakdown.",
+  "steps": [
+    {
+      "type": "write-project-config",
+      "config": {
+        "widgets": {
+          "git": { "enabled": false },
+          "context": { "enabled": false },
+          "block": { "enabled": false },
+          "tools": { "enabled": false }
+        },
+        "concurrencyLimits": {
+          "glm-5": 3,
+          "glm-4.7": 2,
+          "glm-4.5-air": 4
+        }
+      }
+    },
+    {
+      "type": "hook",
+      "action": "pre-tool",
+      "input": { "session_id": "mixed-models", "tool_name": "Task", "tool_input": { "model": "glm-4.5-air" } }
+    },
+    {
+      "type": "hook",
+      "action": "pre-tool",
+      "input": { "session_id": "mixed-models", "tool_name": "Task", "tool_input": { "model": "glm-4.7" } }
+    },
+    {
+      "type": "hook",
+      "action": "agent-start",
+      "input": { "session_id": "mixed-models", "agent_id": "air-1" }
+    },
+    {
+      "type": "hook",
+      "action": "agent-start",
+      "input": { "session_id": "mixed-models", "agent_id": "m47-1" }
+    },
+    {
+      "type": "render",
+      "input": { "session_id": "mixed-models", "model": "glm-5" },
+      "expect": {
+        "contains": ["+4.7_1x:1/2", "+air_1x:1/4"],
+        "regex": ["GLM-5 [23]x"]
+      }
+    }
+  ]
+}

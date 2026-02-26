@@ -6,11 +6,22 @@ import { handlePreTool } from "../../src/hooks/pre-tool.ts";
 import { getStateDir } from "../../src/util/session.ts";
 
 const TEST_SESSION = "test-pre-tool";
+const ENV_KEYS = [
+  "ANTHROPIC_DEFAULT_OPUS_MODEL",
+  "ANTHROPIC_DEFAULT_SONNET_MODEL",
+  "ANTHROPIC_DEFAULT_HAIKU_MODEL",
+] as const;
+const originalEnv: Record<string, string | undefined> = {};
 
 describe("handlePreTool", () => {
   const sessionDir = join(getStateDir(), TEST_SESSION);
 
   beforeEach(() => {
+    for (const key of ENV_KEYS) {
+      originalEnv[key] = process.env[key];
+      delete process.env[key];
+    }
+
     if (existsSync(sessionDir)) {
       rmSync(sessionDir, { recursive: true, force: true });
     }
@@ -18,6 +29,15 @@ describe("handlePreTool", () => {
   });
 
   afterEach(() => {
+    for (const key of ENV_KEYS) {
+      const value = originalEnv[key];
+      if (value === undefined) {
+        delete process.env[key];
+      } else {
+        process.env[key] = value;
+      }
+    }
+
     if (existsSync(sessionDir)) {
       rmSync(sessionDir, { recursive: true, force: true });
     }
@@ -35,7 +55,7 @@ describe("handlePreTool", () => {
     expect(files.length).toBe(1);
 
     const content = JSON.parse(readFileSync(join(queueDir, files[0]), "utf-8"));
-    expect(content.model).toBe("sonnet");
+    expect(content.model).toBe("glm-4.7");
   });
 
   it("ignores non-Task tools", () => {

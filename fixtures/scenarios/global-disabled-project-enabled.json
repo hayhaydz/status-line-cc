@@ -1,0 +1,34 @@
+{
+  "name": "Global Disabled, Project Enabled",
+  "description": "Project config should override global disabled flag.",
+  "steps": [
+    {
+      "type": "write-global-config",
+      "config": {
+        "enabled": false
+      }
+    },
+    {
+      "type": "write-project-config",
+      "config": {
+        "enabled": true,
+        "widgets": {
+          "git": { "enabled": false },
+          "context": { "enabled": false },
+          "block": { "enabled": false },
+          "tools": { "enabled": false }
+        }
+      }
+    },
+    {
+      "type": "render",
+      "input": {
+        "session_id": "global-off-project-on",
+        "model": "glm-5"
+      },
+      "expect": {
+        "regex": ["GLM-5 [23]x"]
+      }
+    }
+  ]
+}

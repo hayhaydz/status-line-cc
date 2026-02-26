@@ -1,0 +1,27 @@
+{
+  "name": "Unknown Model",
+  "description": "Visualize fallback display and default 1x multiplier for an unknown model id.",
+  "steps": [
+    {
+      "type": "write-project-config",
+      "config": {
+        "widgets": {
+          "git": { "enabled": false },
+          "context": { "enabled": false },
+          "block": { "enabled": false },
+          "tools": { "enabled": false }
+        }
+      }
+    },
+    {
+      "type": "render",
+      "input": {
+        "session_id": "unknown-model",
+        "model": "glm-custom-preview"
+      },
+      "expect": {
+        "contains": ["glm-custom-preview 1x"]
+      }
+    }
+  ]
+}

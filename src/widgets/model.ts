@@ -1,7 +1,7 @@
 /**
  * Model Widget
  *
- * Displays the current model name with concurrency multiplier.
+ * Displays the current model name with quota usage multiplier.
  * Includes subagent info when tasks are running, grouped by model.
  */
 
@@ -11,8 +11,10 @@ import { extractModelId } from "../util/model.js";
 import { getActiveTasksByModel } from "../util/task-tracker.js";
 import { getSessionKey } from "../util/session.js";
 
-/** Default concurrency limit */
-const DEFAULT_CONCURRENCY = 5;
+/** Peak/off-peak multipliers for GLM-5 */
+const GLM5_PEAK_MULTIPLIER = 3;
+const GLM5_OFFPEAK_MULTIPLIER = 2;
+const DEFAULT_CONCURRENCY_LIMIT = 5;
 
 /** Model display name mappings */
 const MODEL_NAMES: Record<string, string> = {
@@ -54,10 +56,43 @@ function getShortName(modelId: string): string {
 }
 
 /**
- * Get concurrency limit for model
+ * Check if model should use GLM-5 peak/off-peak multiplier.
+ */
+function isGlm5Model(modelId: string): boolean {
+  const normalized = modelId.toLowerCase();
+  return normalized === "glm-5" || normalized.endsWith("/glm-5") || normalized === "claude-opus-4-6";
+}
+
+/**
+ * Peak window is 14:00-18:00 at UTC+8.
+ */
+function isPeakHoursUtcPlus8(now: Date): boolean {
+  const hourUtcPlus8 = (now.getUTCHours() + 8) % 24;
+  return hourUtcPlus8 >= 14 && hourUtcPlus8 < 18;
+}
+
+/**
+ * Get quota usage multiplier for model.
+ * GLM-5: 3x peak, 2x off-peak. Other models: 1x.
+ * Test override: STATUSLINE_GLM5_MULTIPLIER=2|3
+ */
+function getUsageMultiplier(modelId: string, now = new Date()): number {
+  if (!isGlm5Model(modelId)) {
+    return 1;
+  }
+
+  const forced = process.env.STATUSLINE_GLM5_MULTIPLIER;
+  if (forced === "2") return GLM5_OFFPEAK_MULTIPLIER;
+  if (forced === "3") return GLM5_PEAK_MULTIPLIER;
+
+  return isPeakHoursUtcPlus8(now) ? GLM5_PEAK_MULTIPLIER : GLM5_OFFPEAK_MULTIPLIER;
+}
+
+/**
+ * Get configured parallel task limit for model.
  */
 function getConcurrencyLimit(modelId: string, config?: Config): number {
-  return config?.concurrencyLimits?.[modelId] ?? DEFAULT_CONCURRENCY;
+  return config?.concurrencyLimits?.[modelId] ?? DEFAULT_CONCURRENCY_LIMIT;
 }
 
 /**
@@ -74,7 +109,7 @@ export class ModelWidget extends BaseWidget {
     }
 
     const displayName = getDisplayName(modelId);
-    const multiplier = getConcurrencyLimit(modelId, globalConfig);
+    const multiplier = getUsageMultiplier(modelId);
 
     const parts = [`${displayName} ${multiplier}x`];
 
@@ -90,9 +125,10 @@ export class ModelWidget extends BaseWidget {
       if (tasksByModel.size > 0) {
         const subagentParts: string[] = [];
         for (const [subModelId, active] of Array.from(tasksByModel.entries())) {
+          const subMultiplier = getUsageMultiplier(subModelId);
           const subLimit = getConcurrencyLimit(subModelId, globalConfig);
           const subShort = getShortName(subModelId);
-          subagentParts.push(`+${subShort}_${subLimit}x:${active}/${subLimit}`);
+          subagentParts.push(`+${subShort}_${subMultiplier}x:${active}/${subLimit}`);
         }
         subagentParts.sort();
         parts.push(`[${subagentParts.join(" ")}]`);

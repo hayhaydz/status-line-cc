@@ -1,0 +1,83 @@
+{
+  "name": "Subagent Lifecycle",
+  "description": "Emulates pre-tool/start/stop and renders output before + after stop.",
+  "defaults": {
+    "cwd": "."
+  },
+  "steps": [
+    {
+      "type": "write-project-config",
+      "label": "limit widgets for clean visual output",
+      "config": {
+        "widgets": {
+          "git": { "enabled": false },
+          "context": { "enabled": false },
+          "block": { "enabled": false },
+          "tools": { "enabled": false }
+        },
+        "concurrencyLimits": {
+          "glm-5": 3,
+          "glm-4.7": 3
+        }
+      }
+    },
+    {
+      "type": "hook",
+      "action": "pre-tool",
+      "label": "queue Task model",
+      "input": {
+        "session_id": "demo-session-1",
+        "tool_name": "Task",
+        "tool_input": {
+          "model": "glm-4.7"
+        }
+      }
+    },
+    {
+      "type": "hook",
+      "action": "agent-start",
+      "label": "start subagent",
+      "input": {
+        "session_id": "demo-session-1",
+        "agent_id": "agent-001"
+      }
+    },
+    {
+      "type": "render",
+      "label": "main render with running subagent",
+      "input": {
+        "session_id": "demo-session-1",
+        "model": "glm-5"
+      },
+      "expect": {
+        "contains": [
+          "+4.7_1x:1/3"
+        ],
+        "regex": ["GLM-5 [23]x"]
+      }
+    },
+    {
+      "type": "hook",
+      "action": "agent-stop",
+      "label": "stop subagent",
+      "input": {
+        "session_id": "demo-session-1",
+        "agent_id": "agent-001"
+      }
+    },
+    {
+      "type": "render",
+      "label": "main render after subagent stop",
+      "input": {
+        "session_id": "demo-session-1",
+        "model": "glm-5"
+      },
+      "expect": {
+        "regex": ["GLM-5 [23]x"],
+        "notContains": [
+          "+4.7_1x:1/3"
+        ]
+      }
+    }
+  ]
+}

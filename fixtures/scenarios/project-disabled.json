@@ -1,0 +1,22 @@
+{
+  "name": "Project Disabled",
+  "description": "Project-level enabled=false should force empty statusline output.",
+  "steps": [
+    {
+      "type": "write-project-config",
+      "config": {
+        "enabled": false
+      }
+    },
+    {
+      "type": "render",
+      "input": {
+        "session_id": "project-disabled",
+        "model": "glm-5"
+      },
+      "expect": {
+        "regex": ["^\\s*$"]
+      }
+    }
+  ]
+}

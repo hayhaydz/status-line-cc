@@ -1,0 +1,27 @@
+{
+  "name": "Model Minimal",
+  "description": "Single render with model-only output for clean visual verification.",
+  "steps": [
+    {
+      "type": "write-project-config",
+      "config": {
+        "widgets": {
+          "git": { "enabled": false },
+          "context": { "enabled": false },
+          "block": { "enabled": false },
+          "tools": { "enabled": false }
+        }
+      }
+    },
+    {
+      "type": "render",
+      "input": {
+        "session_id": "model-minimal",
+        "model": "glm-5"
+      },
+      "expect": {
+        "regex": ["GLM-5 [23]x"]
+      }
+    }
+  ]
+}

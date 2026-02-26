@@ -1,0 +1,30 @@
+{
+  "name": "Model Object Input",
+  "description": "Render path where model is passed as object with id/display_name.",
+  "steps": [
+    {
+      "type": "write-project-config",
+      "config": {
+        "widgets": {
+          "git": { "enabled": false },
+          "context": { "enabled": false },
+          "block": { "enabled": false },
+          "tools": { "enabled": false }
+        }
+      }
+    },
+    {
+      "type": "render",
+      "input": {
+        "session_id": "model-object",
+        "model": {
+          "id": "glm-4.7",
+          "display_name": "GLM 4.7"
+        }
+      },
+      "expect": {
+        "contains": ["GLM-4.7 1x"]
+      }
+    }
+  ]
+}

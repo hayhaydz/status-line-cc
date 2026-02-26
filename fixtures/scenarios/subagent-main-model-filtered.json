@@ -1,0 +1,35 @@
+{
+  "name": "Main Model Filtered",
+  "description": "Subagent of same model as main should be filtered from bracket display.",
+  "steps": [
+    {
+      "type": "write-project-config",
+      "config": {
+        "widgets": {
+          "git": { "enabled": false },
+          "context": { "enabled": false },
+          "block": { "enabled": false },
+          "tools": { "enabled": false }
+        }
+      }
+    },
+    {
+      "type": "hook",
+      "action": "pre-tool",
+      "input": { "session_id": "main-filter", "tool_name": "Task", "tool_input": { "model": "glm-5" } }
+    },
+    {
+      "type": "hook",
+      "action": "agent-start",
+      "input": { "session_id": "main-filter", "agent_id": "g5-1" }
+    },
+    {
+      "type": "render",
+      "input": { "session_id": "main-filter", "model": "glm-5" },
+      "expect": {
+        "regex": ["GLM-5 [23]x"],
+        "notContains": ["["]
+      }
+    }
+  ]
+}

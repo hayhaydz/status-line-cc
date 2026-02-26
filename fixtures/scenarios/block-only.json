@@ -1,0 +1,28 @@
+{
+  "name": "Block Only",
+  "description": "Visualize time-remaining block widget without API token dependency.",
+  "steps": [
+    {
+      "type": "write-project-config",
+      "config": {
+        "widgets": {
+          "git": { "enabled": false },
+          "model": { "enabled": false },
+          "context": { "enabled": false },
+          "tools": { "enabled": false },
+          "block": { "enabled": true }
+        }
+      }
+    },
+    {
+      "type": "render",
+      "input": {
+        "session_id": "block-only",
+        "model": "glm-5"
+      },
+      "expect": {
+        "regex": ["^[0-9]+h[0-9]+m"]
+      }
+    }
+  ]
+}

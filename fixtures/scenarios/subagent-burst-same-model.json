@@ -1,0 +1,49 @@
+{
+  "name": "Subagent Burst Same Model",
+  "description": "Queue/start two same-model subagents and verify active count aggregation.",
+  "steps": [
+    {
+      "type": "write-project-config",
+      "config": {
+        "widgets": {
+          "git": { "enabled": false },
+          "context": { "enabled": false },
+          "block": { "enabled": false },
+          "tools": { "enabled": false }
+        },
+        "concurrencyLimits": {
+          "glm-5": 3,
+          "glm-4.7": 3
+        }
+      }
+    },
+    {
+      "type": "hook",
+      "action": "pre-tool",
+      "input": { "session_id": "burst-same", "tool_name": "Task", "tool_input": { "model": "glm-4.7" } }
+    },
+    {
+      "type": "hook",
+      "action": "pre-tool",
+      "input": { "session_id": "burst-same", "tool_name": "Task", "tool_input": { "model": "glm-4.7" } }
+    },
+    {
+      "type": "hook",
+      "action": "agent-start",
+      "input": { "session_id": "burst-same", "agent_id": "a-1" }
+    },
+    {
+      "type": "hook",
+      "action": "agent-start",
+      "input": { "session_id": "burst-same", "agent_id": "a-2" }
+    },
+    {
+      "type": "render",
+      "input": { "session_id": "burst-same", "model": "glm-5" },
+      "expect": {
+        "contains": ["+4.7_1x:2/3"],
+        "regex": ["GLM-5 [23]x"]
+      }
+    }
+  ]
+}
