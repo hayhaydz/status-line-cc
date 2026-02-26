@@ -1,45 +1,97 @@
-import { existsSync, readdirSync, lstatSync, rmSync } from "fs";
+// src/util/task-tracker.ts
+import { existsSync, readdirSync, rmSync, readFileSync, lstatSync } from "fs";
 import { join } from "path";
-import { execFileSync } from "child_process";
+import { getStateDir } from "./session.ts";
 
 /**
- * Directory prefix for Claude status line session directories.
+ * Active entry format stored in active/ directory.
  */
-const DIR_PREFIX = "claude-sl-";
-
-/**
- * Base directory for session directories.
- * Uses /tmp directly for compatibility with shell hooks which write to /tmp.
- * Note: On macOS, Node's tmpdir() returns /var/folders/... which is different from /tmp.
- */
-const TMP_BASE = "/tmp";
-
-/**
- * Path to the task-tracker.sh script.
- */
-const TASK_TRACKER_SCRIPT = `${process.env.HOME}/.claude/statusline-hyz-cc.d/task-tracker.sh`;
-
-/**
- * Stale directory threshold in milliseconds (24 hours).
- */
-const STALE_THRESHOLD_MS = 24 * 60 * 60 * 1000;
-
-/**
- * Get the session directory path for a given session ID.
- * @param sessionId - The session identifier
- * @returns The absolute path to the session directory
- */
-export function getSessionDir(sessionId: string): string {
-  return join(TMP_BASE, `${DIR_PREFIX}${sessionId}`);
+interface ActiveEntry {
+  model: string;
+  hookPid: number;
+  parentPid: number;
+  ts: number;
 }
 
 /**
- * Count total active subagent tasks in a session.
- * @param sessionId - The session identifier (unused, kept for API compatibility)
- * @returns The number of active subagent tasks
+ * Check if a process is still alive.
+ *
+ * IMPORTANT: This validates the SESSION HOST (Claude Code process), not the
+ * individual subagent. If Claude Code stays open for hours, isAlive will
+ * return true even if a specific subagent task finished but failed to
+ * trigger SubagentStop. The 30-minute TTL fallback mitigates this case.
  */
-export function getActiveTaskCount(sessionId: string): number {
-  const result = getActiveTasksByModel(sessionId);
+export function isAlive(pid: number): boolean {
+  try {
+    process.kill(pid, 0);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+/**
+ * Stale entry threshold (30 minutes).
+ */
+const MAX_AGE_MS = 30 * 60 * 1000;
+
+/**
+ * Get all active tasks grouped by model.
+ *
+ * OPTIMIZED: Single-pass implementation that combines cleanup + counting.
+ * 1. Check mtimeMs FIRST (cheap) before reading/parsing JSON (expensive)
+ * 2. Only read/parse if file passes age check
+ * 3. Tally models in the same loop
+ */
+export function getActiveTasksByModel(sessionKey: string): Map<string, number> {
+  const result = new Map<string, number>();
+  const activeDir = join(getStateDir(), sessionKey, "active");
+
+  if (!existsSync(activeDir)) return result;
+
+  const entries = readdirSync(activeDir);
+  const now = Date.now();
+
+  for (const entry of entries) {
+    if (!entry.endsWith(".json")) continue;
+
+    const fp = join(activeDir, entry);
+    try {
+      const stat = lstatSync(fp);
+
+      // SHORT-CIRCUIT: If too old, delete and skip reading/parsing
+      if (now - stat.mtimeMs > MAX_AGE_MS) {
+        rmSync(fp, { force: true });
+        continue;
+      }
+
+      // Recent enough - now read and parse
+      const content = readFileSync(fp, "utf-8");
+      const data: ActiveEntry = JSON.parse(content);
+
+      // Check process liveness
+      if (!isAlive(data.parentPid)) {
+        rmSync(fp, { force: true });
+        continue;
+      }
+
+      // Valid and alive - add to tally
+      const count = result.get(data.model) ?? 0;
+      result.set(data.model, count + 1);
+    } catch {
+      // Invalid entry or corrupt JSON, remove it
+      try { rmSync(fp, { force: true }); } catch { /* ignore */ }
+    }
+  }
+
+  return result;
+}
+
+/**
+ * Count total active subagent tasks.
+ */
+export function getActiveTaskCount(sessionKey: string): number {
+  const result = getActiveTasksByModel(sessionKey);
   let total = 0;
   for (const count of result.values()) {
     total += count;
@@ -48,49 +100,23 @@ export function getActiveTaskCount(sessionId: string): number {
 }
 
 /**
- * Get all active tasks grouped by model.
- * Uses the task-tracker.sh count command which returns "model1:count1,model2:count2" or "0".
- * @param sessionId - The session identifier (unused, kept for API compatibility)
- * @returns A Map where keys are model IDs and values are task counts
+ * Directory prefix for Claude status line session directories (legacy).
  */
-export function getActiveTasksByModel(sessionId: string): Map<string, number> {
-  const result = new Map<string, number>();
+const DIR_PREFIX = "claude-sl-";
 
-  try {
-    // Call task-tracker.sh count to get model counts
-    const output = execFileSync(TASK_TRACKER_SCRIPT, ["count"], {
-      encoding: "utf-8",
-      timeout: 1000,
-    }).trim();
+/**
+ * Base directory for session directories (legacy).
+ */
+const TMP_BASE = "/tmp";
 
-    if (output === "0" || output === "") {
-      return result;
-    }
-
-    // Parse "model1:count1,model2:count2" format
-    const pairs = output.split(",");
-    for (const pair of pairs) {
-      const colonIndex = pair.indexOf(":");
-      if (colonIndex > 0) {
-        const modelId = pair.slice(0, colonIndex).trim();
-        const countStr = pair.slice(colonIndex + 1).trim();
-        const count = parseInt(countStr, 10);
-        if (!isNaN(count) && count > 0) {
-          result.set(modelId, count);
-        }
-      }
-    }
-
-    return result;
-  } catch {
-    // Script may not exist or failed
-    return result;
-  }
-}
+/**
+ * Stale directory threshold (24 hours).
+ */
+const STALE_THRESHOLD_MS = 24 * 60 * 60 * 1000;
 
 /**
  * Clean up stale session directories older than 24 hours.
- * Only removes directories with the claude-sl- prefix.
+ * Kept for backward compatibility with old session dir format.
  */
 export function cleanStaleDirectories(): void {
   const now = Date.now();
@@ -112,12 +138,18 @@ export function cleanStaleDirectories(): void {
           rmSync(entryPath, { recursive: true, force: true });
         }
       } catch {
-        // Entry may have been deleted or inaccessible, skip it
         continue;
       }
     }
   } catch {
-    // tmpdir may be inaccessible, nothing to clean
     return;
   }
+}
+
+/**
+ * Legacy function for backward compatibility.
+ * Returns path to old-style session directory.
+ */
+export function getSessionDir(sessionId: string): string {
+  return join(TMP_BASE, `${DIR_PREFIX}${sessionId}`);
 }
