@@ -36,6 +36,38 @@ export function isAlive(pid: number): boolean {
 const MAX_AGE_MS = 30 * 60 * 1000;
 
 /**
+ * Stale queue entry threshold (60 seconds).
+ * Queue entries older than this are likely orphaned due to SubagentStart not firing.
+ */
+const STALE_QUEUE_MS = 60 * 1000;
+
+/**
+ * Clean up stale queue entries that were never consumed by agent-start.
+ * This handles the case where Claude Code doesn't fire SubagentStart for all agents.
+ */
+function cleanStaleQueueEntries(sessionKey: string): void {
+  const queueDir = join(getStateDir(), sessionKey, "queue");
+  if (!existsSync(queueDir)) return;
+
+  const entries = readdirSync(queueDir);
+  const now = Date.now();
+
+  for (const entry of entries) {
+    if (!entry.endsWith(".json") || entry.includes(".tmp")) continue;
+
+    const fp = join(queueDir, entry);
+    try {
+      const stat = lstatSync(fp);
+      if (now - stat.mtimeMs > STALE_QUEUE_MS) {
+        rmSync(fp, { force: true });
+      }
+    } catch {
+      // Ignore errors
+    }
+  }
+}
+
+/**
  * Get all active tasks grouped by model.
  *
  * OPTIMIZED: Single-pass implementation that combines cleanup + counting.
@@ -46,6 +78,9 @@ const MAX_AGE_MS = 30 * 60 * 1000;
 export function getActiveTasksByModel(sessionKey: string): Map<string, number> {
   const result = new Map<string, number>();
   const activeDir = join(getStateDir(), sessionKey, "active");
+
+  // Clean up stale queue entries (orphaned when SubagentStart doesn't fire)
+  cleanStaleQueueEntries(sessionKey);
 
   if (!existsSync(activeDir)) return result;
 

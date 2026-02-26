@@ -19,6 +19,9 @@ import { error as logError } from "./util/logger.ts";
 import { handleCliCommand, parseCliArgs } from "./cli.ts";
 import { cleanStaleDirectories } from "./util/task-tracker.ts";
 import { handleHook } from "./cli/hook-handler.ts";
+import { getStateDir } from "./util/session.ts";
+import fs from "fs";
+import path from "path";
 
 /**
  * Register all available widgets
@@ -91,6 +94,18 @@ export async function main(): Promise<void> {
   // Read input from stdin
   const inputStr = await readStdin();
   const input = parseInput(inputStr);
+
+  // Debug: log raw input to file (always, for troubleshooting)
+  const debugLogPath = path.join(getStateDir(), "statusline-inputs.log");
+  try {
+    const entry = JSON.stringify({
+      t: Date.now(),
+      session_id: (input as any)?.session_id,
+      cwd: (input as any)?.cwd,
+      keys: Object.keys(input || {}),
+    }) + "\n";
+    fs.appendFileSync(debugLogPath, entry);
+  } catch {}
 
   if (!input) {
     console.log("");

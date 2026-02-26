@@ -8,6 +8,7 @@
 import type { WidgetConfig, ClaudeCodeInput, Config } from "../types.js";
 import { BaseWidget } from "../widget.js";
 import { extractModelId } from "../util/model.js";
+import { extractModel, type PreToolUseInput } from "../util/models.js";
 import { getActiveTasksByModel } from "../util/task-tracker.js";
 import { getSessionKey } from "../util/session.js";
 
@@ -102,25 +103,33 @@ export class ModelWidget extends BaseWidget {
   readonly name = "model";
 
   async render(input: ClaudeCodeInput, config: WidgetConfig, globalConfig?: Config): Promise<string | null> {
-    const modelId = extractModelId(input);
+    const rawModelId = extractModelId(input);
 
-    if (!modelId) {
+    if (!rawModelId) {
       return null;
     }
 
-    const displayName = getDisplayName(modelId);
-    const multiplier = getUsageMultiplier(modelId);
+    // Map to GLM model name for consistent display and matching
+    const glmModelId = extractModel({ tool_input: { model: rawModelId } } as PreToolUseInput);
+    const displayName = getDisplayName(glmModelId);
+    const multiplier = getUsageMultiplier(glmModelId);
 
     const parts = [`${displayName} ${multiplier}x`];
 
     // Add subagent info if any are running
     if (input.session_id) {
       // Use hashed session key to match what hooks create
-      const sessionKey = getSessionKey(input);
+      const sessionKey = getSessionKey(input as any);
+
+      // Debug: log to stderr
+      if (process.env.STATUSLINE_DEBUG === "1") {
+        console.error(`[model widget] session_id=${input.session_id} sessionKey=${sessionKey}`);
+      }
+
       const tasksByModel = getActiveTasksByModel(sessionKey);
 
-      // Remove main model from the map to only show subagent models
-      tasksByModel.delete(modelId);
+      // Show ALL active subagents, even if they match the main model
+      // The main model display is just what the primary session is using
 
       if (tasksByModel.size > 0) {
         const subagentParts: string[] = [];

@@ -53,6 +53,25 @@ export function handleHook(action: string): number {
   try {
     const raw = fs.readFileSync(0, "utf-8"); // stdin = fd 0
     const input = JSON.parse(raw);
+
+    // Debug: log to global file (always, for troubleshooting)
+    if (process.env.CLAUDE_HOOK_DEBUG === "1") {
+      const sessionKey = getSessionKey(input as any);
+      const debugEntry = JSON.stringify({
+        t: Date.now(),
+        action,
+        session_id: (input as any).session_id,
+        cwd: (input as any).cwd,
+        parent_pid: (input as any).parent_pid,
+        sessionKey
+      }) + "\n";
+      const globalLogPath = path.join(getStateDir(), "hook-inputs.log");
+      try {
+        fs.appendFileSync(globalLogPath, debugEntry);
+      } catch {}
+      console.error(`[hook ${action}] session_id=${(input as any).session_id} sessionKey=${sessionKey}`);
+    }
+
     const sessionDir = ensureSessionDir(input);
     log = createLogger(sessionDir);
 
