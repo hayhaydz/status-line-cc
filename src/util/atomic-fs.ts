@@ -2,8 +2,7 @@
 import crypto from "crypto";
 import fs from "fs";
 import path from "path";
-
-type Logger = (action: string, data: Record<string, unknown>) => void;
+import type { HookLogger } from "./shared-types.ts";
 
 /**
  * Write-then-rename for atomic file creation.
@@ -38,7 +37,7 @@ export function popQueue(
   queueDir: string,
   activeDir: string,
   agentId: string,
-  log: Logger
+  log: HookLogger
 ): string | null {
   const entries = fs
     .readdirSync(queueDir)

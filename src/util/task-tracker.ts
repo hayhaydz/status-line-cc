@@ -126,12 +126,8 @@ export function getActiveTasksByModel(sessionKey: string): Map<string, number> {
  * Count total active subagent tasks.
  */
 export function getActiveTaskCount(sessionKey: string): number {
-  const result = getActiveTasksByModel(sessionKey);
-  let total = 0;
-  for (const count of result.values()) {
-    total += count;
-  }
-  return total;
+  const counts = getActiveTasksByModel(sessionKey);
+  return Array.from(counts.values()).reduce((sum, n) => sum + n, 0);
 }
 
 /**
@@ -179,12 +175,4 @@ export function cleanStaleDirectories(): void {
   } catch {
     return;
   }
-}
-
-/**
- * Legacy function for backward compatibility.
- * Returns path to old-style session directory.
- */
-export function getSessionDir(sessionId: string): string {
-  return join(TMP_BASE, `${DIR_PREFIX}${sessionId}`);
 }

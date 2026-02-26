@@ -7,6 +7,7 @@
 import type { Widget, WidgetConfig, WidgetResult, ClaudeCodeInput, Config } from "./types.js";
 import { configureFromConfig, debug, error as logError } from "./util/logger.js";
 import { formatOutput } from "./util/format.js";
+import { isWidgetEnabled } from "./util/shared-types.js";
 
 /** Widget registry */
 const widgetRegistry = new Map<string, Widget>();
@@ -20,24 +21,10 @@ export function registerWidget(widget: Widget): void {
 }
 
 /**
- * Get a widget by name
- */
-export function getWidget(name: string): Widget | undefined {
-  return widgetRegistry.get(name);
-}
-
-/**
  * Get all registered widgets
  */
 export function getAllWidgets(): Widget[] {
   return Array.from(widgetRegistry.values());
-}
-
-/**
- * Unregister a widget
- */
-export function unregisterWidget(name: string): boolean {
-  return widgetRegistry.delete(name);
 }
 
 /**
@@ -97,10 +84,9 @@ export async function renderWidgets(
   }
 
   const widgets = getAllWidgets();
-  const enabledWidgets = widgets.filter((w) => {
-    const config = widgetConfigs[w.name];
-    return config?.enabled !== false;
-  });
+  const enabledWidgets = widgets.filter((w) =>
+    isWidgetEnabled(widgetConfigs[w.name])
+  );
 
   if (enabledWidgets.length === 0) {
     debug("No widgets enabled");
@@ -134,24 +120,8 @@ export abstract class BaseWidget implements Widget {
   }
 
   isEnabled(config: WidgetConfig): boolean {
-    return config.enabled !== false;
+    return isWidgetEnabled(config);
   }
 
   abstract render(input: ClaudeCodeInput, config: WidgetConfig, globalConfig?: Config): Promise<string | null>;
-}
-
-/**
- * Create a widget from a render function
- *
- * Utility for simple widgets that don't need a class.
- */
-export function createWidget(
-  name: string,
-  renderFn: (input: ClaudeCodeInput, config: WidgetConfig) => Promise<string | null>
-): Widget {
-  return {
-    name,
-    render: renderFn,
-    isEnabled: (config) => config.enabled !== false,
-  };
 }

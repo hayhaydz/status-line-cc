@@ -2,8 +2,7 @@
 import fs from "fs";
 import path from "path";
 import { popQueue } from "../util/atomic-fs.ts";
-
-type Logger = (action: string, data: Record<string, unknown>) => void;
+import type { HookLogger } from "../util/shared-types.ts";
 
 interface AgentStartInput {
   agent_id?: string;
@@ -13,7 +12,7 @@ interface AgentStartInput {
  * Handle SubagentStart hook event.
  * Pops model from queue and creates active entry.
  */
-export function handleAgentStart(input: AgentStartInput, sessionDir: string, log: Logger): void {
+export function handleAgentStart(input: AgentStartInput, sessionDir: string, log: HookLogger): void {
   const agentId = input.agent_id;
   if (!agentId) {
     log("agent-start", { error: "missing agent_id" });

@@ -17,17 +17,8 @@ export const BLOCK_OFFSET_MINUTES = 23;
 /** Rotation cycle length in days */
 export const CYCLE_DAYS = 5;
 
-/** Anchor date: 2026-02-21 @ 21:23 UTC - the reference point for the rotation */
+/** Anchor date for the 5-day rotation cycle (2026-02-21 @ 21:23 UTC) */
 export const ANCHOR_DATE = new Date("2026-02-21T21:23:00Z");
-
-/** China timezone offset from UTC in hours */
-export const CHINA_TIMEZONE_OFFSET = 8;
-
-/** Start of anchor day (2026-02-21 00:00 UTC) */
-const ANCHOR_DAY_START = new Date("2026-02-21T00:00:00Z");
-
-/** Milliseconds in a day */
-const MS_PER_DAY = 24 * 60 * 60 * 1000;
 
 /**
  * Get days since anchor (mod 5 for cycle position)
@@ -36,8 +27,10 @@ const MS_PER_DAY = 24 * 60 * 60 * 1000;
  * @returns Days since anchor (0-4, cycles every 5 days)
  */
 export function getDaysSinceAnchor(date: Date): number {
-  const diffMs = date.getTime() - ANCHOR_DAY_START.getTime();
-  const days = Math.floor(diffMs / MS_PER_DAY);
+  const anchorDayStart = new Date("2026-02-21T00:00:00Z");
+  const msPerDay = 24 * 60 * 60 * 1000;
+  const diffMs = date.getTime() - anchorDayStart.getTime();
+  const days = Math.floor(diffMs / msPerDay);
   return ((days % CYCLE_DAYS) + CYCLE_DAYS) % CYCLE_DAYS; // Handle negative values
 }
 
@@ -71,6 +64,47 @@ function getResetHoursForDay(dayOffset: number): number[] {
 }
 
 /**
+ * Find the most recent reset hour from today's schedule.
+ *
+ * @param resetHours - Today's reset hours (sorted ascending)
+ * @param currentTimeInMinutes - Current time in minutes since midnight
+ * @returns The most recent reset hour, or undefined if before first reset
+ */
+function findBlockStartInCurrentDay(
+  resetHours: number[],
+  currentTimeInMinutes: number
+): number | undefined {
+  // Return the last hour that was <= currentTimeInMinutes
+  for (let i = resetHours.length - 1; i >= 0; i--) {
+    if (resetHours[i] * 60 + BLOCK_OFFSET_MINUTES <= currentTimeInMinutes) {
+      return resetHours[i];
+    }
+  }
+  return undefined;
+}
+
+/**
+ * Find the last valid block start hour from previous day.
+ * A "next day" reset (hour < firstHour) doesn't belong to the current day.
+ *
+ * @param prevDayOffset - Previous day's offset
+ * @returns The last block start hour from previous day
+ */
+function findLastBlockStartFromPreviousDay(prevDayOffset: number): number {
+  const prevFirstHour = getFirstResetHour(prevDayOffset);
+  const prevResetHours = getResetHoursForDay(prevDayOffset);
+
+  // Find the last "same day" reset (not a "next day" reset)
+  for (let i = prevResetHours.length - 1; i >= 0; i--) {
+    if (prevResetHours[i] >= prevFirstHour) {
+      return prevResetHours[i];
+    }
+  }
+  // Fallback to the last hour
+  return prevResetHours[prevResetHours.length - 1];
+}
+
+/**
  * Get current block start time using drifting 5-day rotation
  *
  * @param date - The date to calculate block start for (defaults to now)
@@ -84,47 +118,28 @@ export function getCurrentBlockStart(date: Date = new Date()): Date {
   const currentMinute = date.getUTCMinutes();
   const currentTimeInMinutes = currentHour * 60 + currentMinute;
 
-  // Find the most recent reset time
-  // Each reset is at HH:23
-  let blockStartHour: number;
-  let blockStartDayOffset = 0;
-
   // Check if we're before the first reset of the day
   const firstHour = getFirstResetHour(dayOffset);
-  const firstResetMinutes = firstHour * 60 + 23;
+  const firstResetMinutes = firstHour * 60 + BLOCK_OFFSET_MINUTES;
+
+  let blockStartHour: number;
+  let needsPreviousDay = false;
+
   if (currentTimeInMinutes < firstResetMinutes) {
     // We're in a block that started on the previous day
     const prevDayOffset = (dayOffset - 1 + CYCLE_DAYS) % CYCLE_DAYS;
-    const prevFirstHour = getFirstResetHour(prevDayOffset);
-    const prevResetHours = getResetHoursForDay(prevDayOffset);
-
-    // Find the last "same day" reset (not a "next day" reset)
-    // A "next day" reset has hour < firstHour (it belongs to the next calendar day)
-    blockStartHour = prevResetHours[prevResetHours.length - 1];
-    for (let i = prevResetHours.length - 1; i >= 0; i--) {
-      if (prevResetHours[i] >= prevFirstHour) {
-        blockStartHour = prevResetHours[i];
-        break;
-      }
-    }
-    blockStartDayOffset = -1;
+    blockStartHour = findLastBlockStartFromPreviousDay(prevDayOffset);
+    needsPreviousDay = true;
   } else {
     // Find the most recent reset today
-    blockStartHour = resetHours[0];
-    for (const hour of resetHours) {
-      const resetMinutes = hour * 60 + 23;
-      if (resetMinutes <= currentTimeInMinutes) {
-        blockStartHour = hour;
-      } else {
-        break;
-      }
-    }
+    const found = findBlockStartInCurrentDay(resetHours, currentTimeInMinutes);
+    blockStartHour = found ?? resetHours[0];
   }
 
   // Construct the block start date
   const blockStart = new Date(date);
-  blockStart.setUTCHours(blockStartHour, 23, 0, 0);
-  if (blockStartDayOffset === -1) {
+  blockStart.setUTCHours(blockStartHour, BLOCK_OFFSET_MINUTES, 0, 0);
+  if (needsPreviousDay) {
     blockStart.setUTCDate(blockStart.getUTCDate() - 1);
   }
 

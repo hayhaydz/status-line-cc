@@ -1,6 +1,6 @@
 // test/util/models.test.ts
 import { describe, it, expect, beforeEach, afterEach } from "bun:test";
-import { extractModel } from "../../src/util/models.ts";
+import { extractModel } from "../../src/util/model.ts";
 
 const ENV_KEYS = [
   "ANTHROPIC_DEFAULT_OPUS_MODEL",

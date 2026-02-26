@@ -5,13 +5,12 @@ import { getSessionKey, getStateDir, getSessionDir } from "../util/session.ts";
 import { handlePreTool } from "../hooks/pre-tool.ts";
 import { handleAgentStart } from "../hooks/agent-start.ts";
 import { handleAgentStop } from "../hooks/agent-stop.ts";
-
-type Logger = (action: string, data: Record<string, unknown>) => void;
+import type { HookLogger } from "../util/shared-types.ts";
 
 /**
  * Create a debug logger that writes to session directory.
  */
-function createLogger(sessionDir: string): Logger {
+function createLogger(sessionDir: string): HookLogger {
   const debug = process.env.CLAUDE_HOOK_DEBUG === "1";
 
   return (action: string, data: Record<string, unknown>) => {
@@ -47,8 +46,8 @@ function ensureSessionDir(input: Record<string, unknown>): string {
  * to allow for in-process testing.
  */
 export function handleHook(action: string): number {
-  const noop: Logger = () => {};
-  let log: Logger = noop;
+  const noop: HookLogger = () => {};
+  let log: HookLogger = noop;
 
   try {
     const raw = fs.readFileSync(0, "utf-8"); // stdin = fd 0

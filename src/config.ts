@@ -12,7 +12,7 @@ import { readFile } from "node:fs/promises";
 import { existsSync } from "node:fs";
 import { join, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
-import type { Config, WidgetConfig } from "./types.js";
+import type { Config } from "./types.js";
 import { warn } from "./util/logger.js";
 
 /** Default configuration */
@@ -193,15 +193,5 @@ export async function loadConfig(cwd?: string): Promise<Config> {
   }
 
   return config;
-}
-
-/**
- * Get widget config with defaults
- */
-export function getWidgetConfig(
-  config: Config,
-  widgetName: string
-): WidgetConfig {
-  return config.widgets?.[widgetName] ?? { enabled: true };
 }
 

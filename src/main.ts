@@ -20,6 +20,7 @@ import { handleCliCommand, parseCliArgs } from "./cli.ts";
 import { cleanStaleDirectories } from "./util/task-tracker.ts";
 import { handleHook } from "./cli/hook-handler.ts";
 import { getStateDir } from "./util/session.ts";
+import { getWorkingDir } from "./util/shared-types.ts";
 import fs from "fs";
 import path from "path";
 
@@ -113,7 +114,7 @@ export async function main(): Promise<void> {
   }
 
   // Load configuration
-  const cwd = input.cwd ?? input.workspace?.current_dir ?? input.workspace?.project_dir ?? processCwd;
+  const cwd = getWorkingDir(input) ?? processCwd;
   const config = await loadConfig(cwd);
 
   // Check if statusline is disabled

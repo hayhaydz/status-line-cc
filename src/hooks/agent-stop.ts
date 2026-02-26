@@ -1,8 +1,7 @@
 // src/hooks/agent-stop.ts
 import fs from "fs";
 import path from "path";
-
-type Logger = (action: string, data: Record<string, unknown>) => void;
+import type { HookLogger } from "../util/shared-types.ts";
 
 interface AgentStopInput {
   agent_id?: string;
@@ -12,7 +11,7 @@ interface AgentStopInput {
  * Handle SubagentStop hook event.
  * Removes active entry.
  */
-export function handleAgentStop(input: AgentStopInput, sessionDir: string, log: Logger): void {
+export function handleAgentStop(input: AgentStopInput, sessionDir: string, log: HookLogger): void {
   const agentId = input.agent_id;
   if (!agentId) {
     log("agent-stop", { error: "missing agent_id" });

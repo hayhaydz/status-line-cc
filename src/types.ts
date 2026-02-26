@@ -71,9 +71,6 @@ export interface CacheEntry<T> {
 
   /** Expiration timestamp (milliseconds since epoch) */
   expiresAt: number;
-
-  /** Whether the cache is stale (expired but usable for revalidation) */
-  isStale(): boolean;
 }
 
 /**

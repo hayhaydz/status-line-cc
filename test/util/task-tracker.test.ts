@@ -1,11 +1,11 @@
 import { describe, it, expect, beforeEach, afterEach } from "bun:test";
 import {
-  getSessionDir,
   getActiveTaskCount,
   getActiveTasksByModel,
   cleanStaleDirectories,
   isAlive,
 } from "../../src/util/task-tracker.ts";
+import { getSessionDir } from "../../src/util/session.ts";
 import { existsSync, mkdirSync, rmSync, writeFileSync, lstatSync } from "fs";
 import { join } from "path";
 import { getStateDir } from "../../src/util/session.ts";
@@ -33,8 +33,9 @@ describe("task-tracker", () => {
 
   describe("getSessionDir", () => {
     it("returns correct path for session directory", () => {
+      // Now uses the new session.ts format with hashed keys
       const result = getSessionDir("my-session");
-      expect(result).toBe(join(TMP_BASE, "claude-sl-my-session"));
+      expect(result).toContain("claude-tasks-");
     });
   });
 

@@ -7,8 +7,8 @@
 
 import type { WidgetConfig, ClaudeCodeInput, Config } from "../types.js";
 import { BaseWidget } from "../widget.js";
-import { extractModelId } from "../util/model.js";
-import { extractModel, type PreToolUseInput } from "../util/models.js";
+import { extractModelId, extractModel, type PreToolUseInput } from "../util/model.js";
+import type { ModelInfo } from "../util/shared-types.js";
 import { getActiveTasksByModel } from "../util/task-tracker.js";
 import { getSessionKey } from "../util/session.js";
 
@@ -17,43 +17,30 @@ const GLM5_PEAK_MULTIPLIER = 3;
 const GLM5_OFFPEAK_MULTIPLIER = 2;
 const DEFAULT_CONCURRENCY_LIMIT = 5;
 
-/** Model display name mappings */
-const MODEL_NAMES: Record<string, string> = {
-  "claude-opus-4-6": "Opus 4.6",
-  "claude-sonnet-4-6": "Sonnet 4.6",
-  "claude-haiku-4-5-20251001": "Haiku 4.5",
-  "glm-4.5": "GLM-4.5",
-  "glm-4.6": "GLM-4.6",
-  "glm-4.7": "GLM-4.7",
-  "glm-5": "GLM-5",
-  "glm-4.5-air": "GLM-4.5-air",
-};
-
-/** Short names for subagent display (GLM models) */
-const MODEL_SHORT_NAMES: Record<string, string> = {
-  "glm-5": "5",
-  "glm-4.7": "4.7",
-  "glm-4.5-air": "air",
-  "glm-4.6": "4.6",
-  "glm-4.5": "4.5",
+/** Consolidated model registry with display and short names */
+const MODEL_REGISTRY: Record<string, ModelInfo> = {
+  "glm-5": { display: "GLM-5", short: "5" },
+  "glm-4.7": { display: "GLM-4.7", short: "4.7" },
+  "glm-4.6": { display: "GLM-4.6", short: "4.6" },
+  "glm-4.5": { display: "GLM-4.5", short: "4.5" },
+  "glm-4.5-air": { display: "GLM-4.5-air", short: "air" },
   // Legacy Claude names (for backward compatibility)
-  "claude-opus-4-6": "5",
-  "claude-sonnet-4-6": "4.7",
-  "claude-haiku-4-5-20251001": "air",
+  "claude-opus-4-6": { display: "Opus 4.6", short: "5" },
+  "claude-sonnet-4-6": { display: "Sonnet 4.6", short: "4.7" },
+  "claude-haiku-4-5-20251001": { display: "Haiku 4.5", short: "air" },
 };
 
-/**
- * Get display name for model
- */
-function getDisplayName(modelId: string): string {
-  return MODEL_NAMES[modelId] ?? modelId.split("/").pop() ?? modelId;
-}
+/** Models that shouldn't be displayed in subagent info */
+const SKIP_MODELS = new Set(["unknown"]);
 
 /**
- * Get short name for model (for subagent display)
+ * Get model info from registry with fallback.
  */
-function getShortName(modelId: string): string {
-  return MODEL_SHORT_NAMES[modelId] ?? modelId.slice(0, 4);
+function getModelInfo(modelId: string): ModelInfo {
+  return MODEL_REGISTRY[modelId] ?? {
+    display: modelId.split("/").pop() ?? modelId,
+    short: modelId.slice(0, 4),
+  };
 }
 
 /**
@@ -111,10 +98,10 @@ export class ModelWidget extends BaseWidget {
 
     // Map to GLM model name for consistent display and matching
     const glmModelId = extractModel({ tool_input: { model: rawModelId } } as PreToolUseInput);
-    const displayName = getDisplayName(glmModelId);
+    const modelInfo = getModelInfo(glmModelId);
     const multiplier = getUsageMultiplier(glmModelId);
 
-    const parts = [`${displayName} ${multiplier}x`];
+    const parts = [`${modelInfo.display} ${multiplier}x`];
 
     // Add subagent info if any are running
     if (input.session_id) {
@@ -134,13 +121,18 @@ export class ModelWidget extends BaseWidget {
       if (tasksByModel.size > 0) {
         const subagentParts: string[] = [];
         for (const [subModelId, active] of Array.from(tasksByModel.entries())) {
+          // Skip models we can't identify
+          if (SKIP_MODELS.has(subModelId)) continue;
+
           const subMultiplier = getUsageMultiplier(subModelId);
           const subLimit = getConcurrencyLimit(subModelId, globalConfig);
-          const subShort = getShortName(subModelId);
-          subagentParts.push(`+${subShort}_${subMultiplier}x:${active}/${subLimit}`);
+          const subInfo = getModelInfo(subModelId);
+          subagentParts.push(`+${subInfo.short}_${subMultiplier}x:${active}/${subLimit}`);
         }
-        subagentParts.sort();
-        parts.push(`[${subagentParts.join(" ")}]`);
+        if (subagentParts.length > 0) {
+          subagentParts.sort();
+          parts.push(`[${subagentParts.join(" ")}]`);
+        }
       }
     }
 

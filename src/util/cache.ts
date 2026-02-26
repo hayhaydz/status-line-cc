@@ -15,16 +15,19 @@ const cache = new Map<string, CacheEntry<unknown>>();
 const DEFAULT_TTL = 5 * 60 * 1000;
 
 /**
- * Create a cache entry
+ * Check if a cache entry is stale (expired).
+ */
+function isStale(entry: CacheEntry<unknown>): boolean {
+  return Date.now() > entry.expiresAt;
+}
+
+/**
+ * Create a cache entry.
  */
 function createEntry<T>(value: T, ttl: number): CacheEntry<T> {
-  const expiresAt = Date.now() + ttl;
   return {
     value,
-    expiresAt,
-    isStale() {
-      return Date.now() > this.expiresAt;
-    },
+    expiresAt: Date.now() + ttl,
   };
 }
 
@@ -42,7 +45,7 @@ export function get<T>(key: string, allowStale = false): T | undefined {
     return undefined;
   }
 
-  if (entry.isStale()) {
+  if (isStale(entry)) {
     if (allowStale) {
       debug(`Cache hit (stale): ${key}`);
       return entry.value as T;
@@ -88,7 +91,7 @@ export async function getOrCompute<T>(
   if (existing) {
     const entry = cache.get(key);
     // If stale and we allowed stale value, trigger background refresh
-    if (entry && entry.isStale() && allowStale) {
+    if (entry && isStale(entry) && allowStale) {
       debug(`Background refresh for stale key: ${key}`);
       factory().then((fresh) => {
         set(key, fresh, ttl);

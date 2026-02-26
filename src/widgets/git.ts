@@ -10,6 +10,7 @@ import { promisify } from "node:util";
 import type { WidgetConfig, ClaudeCodeInput, GitStatus, Config } from "../types.js";
 import { BaseWidget } from "../widget.js";
 import { debug } from "../util/logger.js";
+import { getWorkingDir } from "../util/shared-types.js";
 
 const execFileAsync = promisify(execFile);
 
@@ -64,7 +65,7 @@ export class GitWidget extends BaseWidget {
   readonly name = "git";
 
   async render(input: ClaudeCodeInput, config: WidgetConfig, globalConfig?: Config): Promise<string | null> {
-    const cwd = input.cwd ?? input.workspace?.current_dir ?? input.workspace?.project_dir;
+    const cwd = getWorkingDir(input);
 
     const status = await getGitStatus(cwd);
 
