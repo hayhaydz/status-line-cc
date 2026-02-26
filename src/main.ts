@@ -16,8 +16,9 @@ import { BlockWidget } from "./widgets/block.ts";
 import { ToolsWidget } from "./widgets/tools.ts";
 import type { ClaudeCodeInput, Config } from "./types.ts";
 import { error as logError } from "./util/logger.ts";
-import { handleCliCommand } from "./cli.ts";
+import { handleCliCommand, parseCliArgs } from "./cli.ts";
 import { cleanStaleDirectories } from "./util/task-tracker.js";
+import { handleHook } from "./cli/hook-handler.ts";
 
 /**
  * Register all available widgets
@@ -68,6 +69,13 @@ export async function main(): Promise<void> {
   // Check for CLI commands first (before reading stdin)
   const cliArgs = process.argv.slice(2);
   const processCwd = process.cwd();
+
+  // Check for --hook flag first (special case - synchronous, always exits)
+  const parsed = parseCliArgs(cliArgs);
+  if (parsed.command === "hook" && parsed.hookAction) {
+    const exitCode = handleHook(parsed.hookAction);
+    process.exit(exitCode);
+  }
 
   const cliHandled = await handleCliCommand(cliArgs, processCwd);
   if (cliHandled) {

@@ -101,4 +101,27 @@ describe("CLI Config Operations", () => {
     const result = parseCliArgs(["--help", "--enable"]);
     expect(result).toEqual({ command: "help" });
   });
+
+  it("should parse --hook pre-tool", () => {
+    const result = parseCliArgs(["--hook", "pre-tool"]);
+    expect(result.command).toBe("hook");
+    expect(result.hookAction).toBe("pre-tool");
+  });
+
+  it("should parse --hook agent-start", () => {
+    const result = parseCliArgs(["--hook", "agent-start"]);
+    expect(result.command).toBe("hook");
+    expect(result.hookAction).toBe("agent-start");
+  });
+
+  it("should parse --hook agent-stop", () => {
+    const result = parseCliArgs(["--hook", "agent-stop"]);
+    expect(result.command).toBe("hook");
+    expect(result.hookAction).toBe("agent-stop");
+  });
+
+  it("should return null for invalid hook action", () => {
+    const result = parseCliArgs(["--hook", "invalid"]);
+    expect(result.command).toBeNull();
+  });
 });

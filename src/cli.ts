@@ -21,7 +21,8 @@ const PROJECT_CONFIG_FILE = ".statusline-hyz-cc.json";
  * Parsed CLI command result
  */
 export interface CliCommand {
-  command: "help" | "enable" | "disable" | "project-disable" | "status" | null;
+  command: "help" | "enable" | "disable" | "project-disable" | "status" | "hook" | null;
+  hookAction?: string;
 }
 
 /**
@@ -61,6 +62,13 @@ export function parseCliArgs(args: string[]): CliCommand {
       return { command: "project-disable" };
     case "--status":
       return { command: "status" };
+    case "--hook":
+      // Handle hook subcommand
+      const hookAction = args[1];
+      if (["pre-tool", "agent-start", "agent-stop"].includes(hookAction)) {
+        return { command: "hook", hookAction };
+      }
+      return { command: null };
     default:
       return { command: null };
   }
@@ -193,7 +201,7 @@ export async function showStatus(cwd: string): Promise<void> {
  * Returns true if a CLI command was handled (should exit), false otherwise
  */
 export async function handleCliCommand(args: string[], cwd: string): Promise<boolean> {
-  const { command } = parseCliArgs(args);
+  const { command, hookAction } = parseCliArgs(args);
 
   // No CLI command, proceed with normal operation
   if (!command) {
@@ -216,6 +224,10 @@ export async function handleCliCommand(args: string[], cwd: string): Promise<boo
       return true;
     case "status":
       await showStatus(cwd);
+      return true;
+    case "hook":
+      // Hook is handled synchronously in main.ts, not here
+      // This case is for type completeness
       return true;
     default:
       return false;
