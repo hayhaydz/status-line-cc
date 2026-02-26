@@ -17,7 +17,7 @@ import { ToolsWidget } from "./widgets/tools.ts";
 import type { ClaudeCodeInput, Config } from "./types.ts";
 import { error as logError } from "./util/logger.ts";
 import { handleCliCommand, parseCliArgs } from "./cli.ts";
-import { cleanStaleDirectories } from "./util/task-tracker.js";
+import { cleanStaleDirectories } from "./util/task-tracker.ts";
 import { handleHook } from "./cli/hook-handler.ts";
 
 /**

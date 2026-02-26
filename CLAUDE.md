@@ -43,16 +43,9 @@ Built as a single binary via Bun's compile feature. Distributed as an npm packag
 | `src/widgets/*.ts` | Individual widget implementations |
 | `src/util/time.ts` | Block schedule calculation |
 | `src/util/format.ts` | Output formatting utilities |
+| `src/hooks/*.ts` | Hook handlers for subagent tracking |
+| `src/cli/hook-handler.ts` | Hook CLI entry point |
 
-## User Directory Files (Deployed from This Project)
+## Hook System
 
-The following files exist in `~/.claude/` but are **managed from this local project**. Always edit the the local copy first, then deploy:
-
-| Local Path | Deployed To | Purpose |
-|------------|-------------|---------|
-| `scripts/task-tracker.sh` | `~/.claude/statusline-hyz-cc.d/task-tracker.sh` | Subagent model tracking hook script |
-
-**Deployment:** After editing local copies, deploy with:
-```bash
-cp scripts/task-tracker.sh ~/.claude/statusline-hyz-cc.d/
-```
+The binary supports `--hook <action>` for Claude Code hook integration. See `docs/hook-setup.md` for configuration details.
