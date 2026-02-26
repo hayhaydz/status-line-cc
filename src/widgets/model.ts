@@ -9,6 +9,7 @@ import type { WidgetConfig, ClaudeCodeInput, Config } from "../types.js";
 import { BaseWidget } from "../widget.js";
 import { extractModelId } from "../util/model.js";
 import { getActiveTasksByModel } from "../util/task-tracker.js";
+import { getSessionKey } from "../util/session.js";
 
 /** Default concurrency limit */
 const DEFAULT_CONCURRENCY = 5;
@@ -25,16 +26,17 @@ const MODEL_NAMES: Record<string, string> = {
   "glm-4.5-air": "GLM-4.5-air",
 };
 
-/** Short names for subagent display */
+/** Short names for subagent display (GLM models) */
 const MODEL_SHORT_NAMES: Record<string, string> = {
-  "claude-opus-4-6": "Op",
-  "claude-sonnet-4-6": "Sn",
-  "claude-haiku-4-5-20251001": "Hk",
-  "glm-4.5": "4.5",
-  "glm-4.6": "4.6",
-  "glm-4.7": "4.7",
   "glm-5": "5",
-  "glm-4.5-air": "Air",
+  "glm-4.7": "4.7",
+  "glm-4.5-air": "air",
+  "glm-4.6": "4.6",
+  "glm-4.5": "4.5",
+  // Legacy Claude names (for backward compatibility)
+  "claude-opus-4-6": "5",
+  "claude-sonnet-4-6": "4.7",
+  "claude-haiku-4-5-20251001": "air",
 };
 
 /**
@@ -78,7 +80,9 @@ export class ModelWidget extends BaseWidget {
 
     // Add subagent info if any are running
     if (input.session_id) {
-      const tasksByModel = getActiveTasksByModel(input.session_id);
+      // Use hashed session key to match what hooks create
+      const sessionKey = getSessionKey(input);
+      const tasksByModel = getActiveTasksByModel(sessionKey);
 
       // Remove main model from the map to only show subagent models
       tasksByModel.delete(modelId);
