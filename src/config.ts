@@ -27,10 +27,13 @@ export const DEFAULTS: Config = {
   },
   concurrencyLimits: {
     "glm-5": 3,
-    "glm-4.7": 5,
+    "glm-4.7": 3,
     "glm-4.6": 3,
     "glm-4.5": 10,
     "glm-4.5-air": 5,
+    "glm-4.5-airx": 5,
+    "glm-4.7-flash": 1,
+    "glm-4.7-flashx": 3,
   },
 };
 
