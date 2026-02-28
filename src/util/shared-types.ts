@@ -12,6 +12,15 @@ import type { ClaudeCodeInput } from "../types.js";
 export type HookLogger = (action: string, data: Record<string, unknown>) => void;
 
 /**
+ * Response type for hooks that can deny tool execution.
+ * Return { decision: "allow" } to proceed, or { decision: "deny", reason: "..." } to block.
+ */
+export interface HookResponse {
+  decision: "allow" | "deny";
+  reason?: string;
+}
+
+/**
  * Model information for display purposes.
  */
 export interface ModelInfo {
