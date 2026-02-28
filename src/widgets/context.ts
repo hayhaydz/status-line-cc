@@ -10,6 +10,7 @@ import { readFileSync, writeFileSync, existsSync } from "node:fs";
 import type { WidgetConfig, ClaudeCodeInput, Config } from "../types.js";
 import { BaseWidget } from "../widget.js";
 import { debug } from "../util/logger.js";
+import { suppress } from "../util/suppress.js";
 
 /** Default context limit if not provided in input */
 const DEFAULT_CONTEXT_LIMIT = 200_000;
@@ -66,9 +67,7 @@ function calculatePercentage(tokens: number, limit: number): number {
  * Save/load cache state for persistence
  */
 function saveCacheState(percentage: number): void {
-  try {
-    writeFileSync(CACHE_STATE_FILE, String(percentage), "utf-8");
-  } catch { /* ignore */ }
+  suppress(() => writeFileSync(CACHE_STATE_FILE, String(percentage), "utf-8"));
 }
 
 function loadCacheState(): number | null {
