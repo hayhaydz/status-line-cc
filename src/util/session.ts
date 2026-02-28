@@ -44,3 +44,15 @@ export function getSessionKey(input: HookInput): string {
 export function getSessionDir(sessionKey: string): string {
   return join(getStateDir(), sessionKey);
 }
+
+/**
+ * Get standard paths for a session directory.
+ * Provides consistent path joining for queue, active, and agent files.
+ */
+export function getSessionPaths(sessionDir: string) {
+  return {
+    queue: join(sessionDir, "queue"),
+    active: join(sessionDir, "active"),
+    activeFile: (agentId: string) => join(sessionDir, "active", `${agentId}.json`),
+  };
+}

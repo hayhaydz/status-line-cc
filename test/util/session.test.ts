@@ -1,6 +1,6 @@
 // test/util/session.test.ts
 import { describe, it, expect } from "bun:test";
-import { getSessionKey, getStateDir } from "../../src/util/session.ts";
+import { getSessionKey, getStateDir, getSessionPaths } from "../../src/util/session.ts";
 
 describe("session", () => {
   describe("getStateDir", () => {
@@ -34,6 +34,26 @@ describe("session", () => {
 
     it("throws when no discriminator available", () => {
       expect(() => getSessionKey({})).toThrow("No session discriminator available");
+    });
+  });
+
+  describe("getSessionPaths", () => {
+    it("returns queue and active paths", () => {
+      const paths = getSessionPaths("/tmp/session-abc");
+      expect(paths.queue).toBe("/tmp/session-abc/queue");
+      expect(paths.active).toBe("/tmp/session-abc/active");
+    });
+
+    it("returns activeFile function that constructs agent file paths", () => {
+      const paths = getSessionPaths("/tmp/session-abc");
+      expect(paths.activeFile("agent123")).toBe("/tmp/session-abc/active/agent123.json");
+    });
+
+    it("handles different base paths", () => {
+      const paths = getSessionPaths("/var/folders/xyz123");
+      expect(paths.queue).toBe("/var/folders/xyz123/queue");
+      expect(paths.active).toBe("/var/folders/xyz123/active");
+      expect(paths.activeFile("test")).toBe("/var/folders/xyz123/active/test.json");
     });
   });
 });
