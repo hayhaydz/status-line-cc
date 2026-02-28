@@ -73,13 +73,11 @@ export class GitWidget extends BaseWidget {
       return null; // Not in a git repo
     }
 
-    const parts = [status.branch];
-
-    if (status.isDirty) {
-      const totalChanges = status.staged + status.modified;
-      parts.push(`*${totalChanges}`);
+    if (!status.isDirty) {
+      return null;
     }
 
-    return parts.join(" ");
+    const totalChanges = status.staged + status.modified;
+    return `*${totalChanges}`;
   }
 }
