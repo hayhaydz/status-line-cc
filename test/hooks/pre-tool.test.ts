@@ -69,4 +69,44 @@ describe("handlePreTool", () => {
       expect(files.length).toBe(0);
     }
   });
+
+  it("denies Task with subagent_type but no model", () => {
+    const input = {
+      tool_name: "Task",
+      tool_input: {
+        subagent_type: "code-simplifier:code-simplifier",
+        description: "test",
+        prompt: "simplify this"
+      }
+    };
+
+    const result = handlePreTool(input, sessionDir, () => {});
+
+    expect(result.decision).toBe("deny");
+    expect(result.reason).toContain("model");
+  });
+
+  it("allows Task with explicit model", () => {
+    const input = {
+      tool_name: "Task",
+      tool_input: {
+        subagent_type: "code-simplifier:code-simplifier",
+        model: "glm-4.7",
+        description: "test",
+        prompt: "simplify this"
+      }
+    };
+
+    const result = handlePreTool(input, sessionDir, () => {});
+
+    expect(result.decision).toBe("allow");
+  });
+
+  it("allows non-Task tools via response", () => {
+    const input = { tool_name: "Read", tool_input: { file_path: "/tmp/test" } };
+
+    const result = handlePreTool(input, sessionDir, () => {});
+
+    expect(result.decision).toBe("allow");
+  });
 });
