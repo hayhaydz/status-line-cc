@@ -8,7 +8,7 @@
 import type { WidgetConfig, ClaudeCodeInput, Config } from "../types.js";
 import { BaseWidget } from "../widget.js";
 import { getTimeRemaining } from "../util/time.js";
-import { getGLMQuota, findQuotaLimit } from "../util/glm-api.js";
+import { getQuotaLimit } from "../util/glm-api.js";
 
 /** TOKENS limit type in GLM API (5-hour block) */
 const TOKENS_LIMIT_TYPE = "TOKENS_LIMIT";
@@ -29,40 +29,19 @@ export class BlockWidget extends BaseWidget {
   readonly name = "block";
 
   async render(input: ClaudeCodeInput, config: WidgetConfig, globalConfig?: Config): Promise<string | null> {
-    let timeRemaining: number;
-    let percentage: number | undefined;
+    // Get token limit from API
+    const tokenLimit = await getQuotaLimit(globalConfig, TOKENS_LIMIT_TYPE);
 
-    // Try to get time from GLM API
-    try {
-      const quota = await getGLMQuota(globalConfig);
-
-      if (!("error" in quota)) {
-        const tokenLimit = findQuotaLimit(quota, TOKENS_LIMIT_TYPE);
-        if (tokenLimit) {
-          // Use API's exact nextResetTime if available
-          if (tokenLimit.nextResetTime) {
-            timeRemaining = tokenLimit.nextResetTime - Date.now();
-          } else {
-            // Fall back to calculated schedule
-            timeRemaining = getTimeRemaining(new Date());
-          }
-          percentage = tokenLimit.percentage;
-        } else {
-          timeRemaining = getTimeRemaining(new Date());
-        }
-      } else {
-        // API error - use calculated schedule
-        timeRemaining = getTimeRemaining(new Date());
-      }
-    } catch {
-      // Fall back to calculated schedule
-      timeRemaining = getTimeRemaining(new Date());
-    }
+    // Calculate time remaining
+    const timeRemaining = tokenLimit?.nextResetTime
+      ? tokenLimit.nextResetTime - Date.now()
+      : getTimeRemaining(new Date());
 
     const timeStr = formatTimeRemaining(timeRemaining);
 
-    if (percentage !== undefined) {
-      return `${timeStr} [${percentage}%]`;
+    // Show percentage if available
+    if (tokenLimit?.percentage !== undefined) {
+      return `${timeStr} [${tokenLimit.percentage}%]`;
     }
 
     return timeStr;
