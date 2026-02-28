@@ -12,7 +12,10 @@ export interface PreToolUseInput {
   tool_name: string;
   tool_input: {
     model?: string;
-    task_prompt?: string;
+    subagent_type?: string;
+    description?: string;
+    prompt?: string;
+    [key: string]: unknown;
   };
 }
 
