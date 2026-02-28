@@ -1,6 +1,6 @@
 // src/hooks/agent-start.ts
 import fs from "fs";
-import path from "path";
+import { getSessionPaths } from "../util/session.ts";
 import { popQueue } from "../util/atomic-fs.ts";
 import type { HookLogger } from "../util/shared-types.ts";
 
@@ -20,10 +20,9 @@ export function handleAgentStart(input: AgentStartInput, sessionDir: string, log
     return;
   }
 
-  const queueDir = path.join(sessionDir, "queue");
-  const activeDir = path.join(sessionDir, "active");
-  fs.mkdirSync(activeDir, { recursive: true });
+  const { queue, active } = getSessionPaths(sessionDir);
+  fs.mkdirSync(active, { recursive: true });
 
-  const model = popQueue(queueDir, activeDir, agentId, log);
+  const model = popQueue(queue, active, agentId, log);
   log("agent-start", { agentId, model: model ?? "unknown" });
 }

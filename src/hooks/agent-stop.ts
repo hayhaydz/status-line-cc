@@ -1,6 +1,6 @@
 // src/hooks/agent-stop.ts
 import fs from "fs";
-import path from "path";
+import { getSessionPaths } from "../util/session.ts";
 import type { HookLogger } from "../util/shared-types.ts";
 
 interface AgentStopInput {
@@ -18,9 +18,9 @@ export function handleAgentStop(input: AgentStopInput, sessionDir: string, log: 
     return;
   }
 
-  const fp = path.join(sessionDir, "active", `${agentId}.json`);
+  const { activeFile } = getSessionPaths(sessionDir);
   try {
-    fs.unlinkSync(fp);
+    fs.unlinkSync(activeFile(agentId));
     log("agent-stop", { agentId, status: "removed" });
   } catch (e: unknown) {
     const err = e as { code?: string };

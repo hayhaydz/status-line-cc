@@ -3,6 +3,7 @@ import fs from "fs";
 import path from "path";
 import { extractModel, type PreToolUseInput } from "../util/model.ts";
 import { atomicWrite, queueFilename } from "../util/atomic-fs.ts";
+import { getSessionPaths } from "../util/session.ts";
 import type { HookLogger, HookResponse } from "../util/shared-types.ts";
 
 /**
@@ -41,11 +42,11 @@ export function handlePreTool(
   }
 
   // Write to queue for subagent tracking
-  const queueDir = path.join(sessionDir, "queue");
-  fs.mkdirSync(queueDir, { recursive: true });
+  const { queue } = getSessionPaths(sessionDir);
+  fs.mkdirSync(queue, { recursive: true });
 
   const filename = queueFilename();
-  atomicWrite(path.join(queueDir, filename), JSON.stringify({ model: extractedModel }));
+  atomicWrite(path.join(queue, filename), JSON.stringify({ model: extractedModel }));
 
   log("pre-tool", { model: extractedModel, filename });
   return { decision: "allow" };
