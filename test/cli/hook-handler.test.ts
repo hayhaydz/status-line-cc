@@ -41,7 +41,7 @@ describe("hook-handler stdout", () => {
     }
   });
 
-  it("outputs deny JSON to stdout when model missing", () => {
+  it("outputs deny JSON to stderr when model missing", () => {
     const input = JSON.stringify({
       session_id: "test-session",
       cwd: "/tmp",
@@ -59,12 +59,13 @@ describe("hook-handler stdout", () => {
       cwd: process.cwd()
     });
 
-    const parsed = JSON.parse(result.stdout.trim());
+    // Hook responses go to stderr per Claude Code spec
+    const parsed = JSON.parse(result.stderr.trim());
     expect(parsed.decision).toBe("deny");
     expect(parsed.reason).toContain("model");
   });
 
-  it("outputs allow JSON to stdout when model present", () => {
+  it("outputs allow JSON to stderr when model present", () => {
     const input = JSON.stringify({
       session_id: "test-session",
       cwd: "/tmp",
@@ -82,7 +83,8 @@ describe("hook-handler stdout", () => {
       cwd: process.cwd()
     });
 
-    const parsed = JSON.parse(result.stdout.trim());
+    // Hook responses go to stderr per Claude Code spec
+    const parsed = JSON.parse(result.stderr.trim());
     expect(parsed.decision).toBe("allow");
   });
 });
