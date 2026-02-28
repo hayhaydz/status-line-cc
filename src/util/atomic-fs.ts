@@ -27,6 +27,14 @@ export function queueFilename(): string {
 }
 
 /**
+ * Check if a filename is a valid queue entry.
+ * Filters out temp files and non-JSON files.
+ */
+function isQueueEntry(filename: string): boolean {
+  return filename.endsWith(".json") && !filename.includes(".tmp");
+}
+
+/**
  * Pop from queue with retry on ENOENT.
  * If another hook consumed the entry, try the next one.
  *
@@ -42,7 +50,7 @@ export function popQueue(
 ): string | null {
   const entries = fs
     .readdirSync(queueDir)
-    .filter((f) => f.endsWith(".json") && !f.includes(".tmp"))
+    .filter(isQueueEntry)
     .sort();
 
   for (const entry of entries) {
