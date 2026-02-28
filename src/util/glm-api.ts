@@ -166,3 +166,16 @@ export function findQuotaLimit(
   if ("error" in response) return undefined;
   return response.limits.find((limit) => limit.type === type);
 }
+
+/**
+ * Get a specific quota limit by type, handling errors automatically.
+ * Returns null if API errors or limit type not found.
+ */
+export async function getQuotaLimit(
+  config: Config | undefined,
+  limitType: string
+): Promise<GLMQuotaLimit | null> {
+  const quota = await getGLMQuota(config);
+  if ("error" in quota) return null;
+  return findQuotaLimit(quota, limitType) ?? null;
+}
