@@ -40,8 +40,8 @@ function ensureSessionDir(input: Record<string, unknown>): string {
 }
 
 /**
- * Dump complete raw payload for investigation.
- * Logs the entire input without filtering - cast a wide net.
+ * Dump raw payload for debugging.
+ * Only active when CLAUDE_HOOK_DEBUG=1.
  */
 function dumpRawPayload(
   action: string,
@@ -96,10 +96,9 @@ export function handleHook(action: string): number {
     const stateDir = getStateDir();
     fs.mkdirSync(stateDir, { recursive: true });
 
-    // WIDE NET: Dump complete raw payload for investigation
+    // Debug: dump raw payload when CLAUDE_HOOK_DEBUG=1
     if (process.env.CLAUDE_HOOK_DEBUG === "1") {
       dumpRawPayload(action, raw, input, stateDir);
-      console.error(`[hook ${action}] logged to ${stateDir}/${action}.jsonl`);
     }
 
     const sessionDir = ensureSessionDir(input);

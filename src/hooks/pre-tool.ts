@@ -22,9 +22,6 @@ export function handlePreTool(
 
   const { subagent_type, model } = input.tool_input;
 
-  // WIDE NET: Log complete input structure - analysis happens later
-  log("pre-tool-raw", { input });
-
   // Deny Task calls with subagent_type but no model
   if (subagent_type && !model) {
     log("pre-tool", { denied: true, reason: "missing model" });

@@ -6,6 +6,7 @@ import type { HookLogger } from "../util/shared-types.ts";
 
 interface AgentStartInput {
   agent_id?: string;
+  [key: string]: unknown; // Accept any fields - we'll log everything
 }
 
 /**
