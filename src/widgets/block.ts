@@ -1,10 +1,8 @@
 /**
  * Block Widget
  *
- * Displays 5-hour block time remaining using drifting 5-day rotation.
- * Schedule drifts backward by 1 hour each day (24 not divisible by 5).
- * Also shows block usage percentage from GLM API.
- * Anchor: 2026-02-21 @ 21:23 UTC
+ * Displays 5-hour block time remaining using GLM API's nextResetTime.
+ * Falls back to calculated drifting schedule when API unavailable.
  */
 
 import type { WidgetConfig, ClaudeCodeInput, Config } from "../types.js";
@@ -31,21 +29,40 @@ export class BlockWidget extends BaseWidget {
   readonly name = "block";
 
   async render(input: ClaudeCodeInput, config: WidgetConfig, globalConfig?: Config): Promise<string | null> {
-    const timeRemaining = getTimeRemaining(new Date());
-    const timeStr = formatTimeRemaining(timeRemaining);
+    let timeRemaining: number;
+    let percentage: number | undefined;
 
-    // Get block usage from GLM API
+    // Try to get time from GLM API
     try {
       const quota = await getGLMQuota(globalConfig);
 
       if (!("error" in quota)) {
         const tokenLimit = findQuotaLimit(quota, TOKENS_LIMIT_TYPE);
-        if (tokenLimit && tokenLimit.percentage !== undefined) {
-          return `${timeStr} [${tokenLimit.percentage}%]`;
+        if (tokenLimit) {
+          // Use API's exact nextResetTime if available
+          if (tokenLimit.nextResetTime) {
+            timeRemaining = tokenLimit.nextResetTime - Date.now();
+          } else {
+            // Fall back to calculated schedule
+            timeRemaining = getTimeRemaining(new Date());
+          }
+          percentage = tokenLimit.percentage;
+        } else {
+          timeRemaining = getTimeRemaining(new Date());
         }
+      } else {
+        // API error - use calculated schedule
+        timeRemaining = getTimeRemaining(new Date());
       }
     } catch {
-      // Fall through to time-only display
+      // Fall back to calculated schedule
+      timeRemaining = getTimeRemaining(new Date());
+    }
+
+    const timeStr = formatTimeRemaining(timeRemaining);
+
+    if (percentage !== undefined) {
+      return `${timeStr} [${percentage}%]`;
     }
 
     return timeStr;

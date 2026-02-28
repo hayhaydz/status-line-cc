@@ -26,13 +26,16 @@ export interface GLMQuotaLimit {
   type: string;
 
   /** Usage percentage (0-100) */
-  percentage: number;
+  percentage?: number;
 
   /** Current usage amount */
   currentUsage?: number;
 
   /** Total limit (note: API has typo "totol" not "total") */
   totol?: number;
+
+  /** Exact timestamp when this limit resets (ms since epoch) */
+  nextResetTime?: number;
 
   /** Usage breakdown details */
   usageDetails?: Array<{ modelCode: string; usage: number }>;
