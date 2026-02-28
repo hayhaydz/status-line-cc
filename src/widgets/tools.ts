@@ -9,8 +9,8 @@ import type { WidgetConfig, ClaudeCodeInput, Config } from "../types.js";
 import { BaseWidget } from "../widget.js";
 import { getGLMQuota, findQuotaLimit } from "../util/glm-api.js";
 
-/** MCP usage limit type in GLM API */
-const MCP_LIMIT_TYPE = "MCP usage(1 Month)";
+/** TIME_LIMIT is the MCP/tools usage in GLM API */
+const MCP_LIMIT_TYPE = "TIME_LIMIT";
 
 /**
  * Tools Widget - shows MCP/web quota usage
