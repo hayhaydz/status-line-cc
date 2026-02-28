@@ -40,6 +40,45 @@ function ensureSessionDir(input: Record<string, unknown>): string {
 }
 
 /**
+ * Dump complete raw payload for investigation.
+ * Logs the entire input without filtering - cast a wide net.
+ */
+function dumpRawPayload(
+  action: string,
+  raw: string,
+  input: Record<string, unknown>,
+  stateDir: string
+): void {
+  const timestamp = new Date().toISOString();
+  const entry = {
+    // Metadata
+    _meta: {
+      timestamp,
+      action,
+      iso: timestamp,
+    },
+    // COMPLETE raw input - no filtering
+    payload: input,
+  };
+
+  const rawDumpPath = path.join(stateDir, "raw-dump.jsonl");
+  try {
+    fs.appendFileSync(rawDumpPath, JSON.stringify(entry) + "\n");
+  } catch {}
+
+  // Also write separate file per hook type for easier analysis
+  const perTypePath = path.join(stateDir, `${action}.jsonl`);
+  try {
+    fs.appendFileSync(perTypePath, JSON.stringify({
+      t: Date.now(),
+      action,
+      // Everything - let analysis tools filter later
+      ...input
+    }) + "\n");
+  } catch {}
+}
+
+/**
  * Main hook handler entry point.
  * Reads stdin, routes to appropriate handler.
  * Returns exit code (always 0) instead of calling process.exit directly
@@ -53,31 +92,26 @@ export function handleHook(action: string): number {
     const raw = fs.readFileSync(0, "utf-8"); // stdin = fd 0
     const input = JSON.parse(raw);
 
-    // Debug: log to global file (always, for troubleshooting)
+    // Ensure base state directory exists FIRST
+    const stateDir = getStateDir();
+    fs.mkdirSync(stateDir, { recursive: true });
+
+    // WIDE NET: Dump complete raw payload for investigation
     if (process.env.CLAUDE_HOOK_DEBUG === "1") {
-      const sessionKey = getSessionKey(input as any);
-      const debugEntry = JSON.stringify({
-        t: Date.now(),
-        action,
-        session_id: (input as any).session_id,
-        cwd: (input as any).cwd,
-        parent_pid: (input as any).parent_pid,
-        sessionKey
-      }) + "\n";
-      const globalLogPath = path.join(getStateDir(), "hook-inputs.log");
-      try {
-        fs.appendFileSync(globalLogPath, debugEntry);
-      } catch {}
-      console.error(`[hook ${action}] session_id=${(input as any).session_id} sessionKey=${sessionKey}`);
+      dumpRawPayload(action, raw, input, stateDir);
+      console.error(`[hook ${action}] logged to ${stateDir}/${action}.jsonl`);
     }
 
     const sessionDir = ensureSessionDir(input);
     log = createLogger(sessionDir);
 
     switch (action) {
-      case "pre-tool":
-        handlePreTool(input, sessionDir, log);
+      case "pre-tool": {
+        const response = handlePreTool(input, sessionDir, log);
+        // Output response to stdout for Claude Code to process
+        console.log(JSON.stringify(response));
         break;
+      }
       case "agent-start":
         handleAgentStart(input, sessionDir, log);
         break;
