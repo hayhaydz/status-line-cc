@@ -81,8 +81,7 @@ function dumpRawPayload(
 /**
  * Main hook handler entry point.
  * Reads stdin, routes to appropriate handler.
- * Returns exit code (always 0) instead of calling process.exit directly
- * to allow for in-process testing.
+ * Returns exit code: 0=allow, 2=deny for PreToolUse hooks.
  */
 export function handleHook(action: string): number {
   const noop: HookLogger = () => {};
@@ -107,8 +106,12 @@ export function handleHook(action: string): number {
     switch (action) {
       case "pre-tool": {
         const response = handlePreTool(input, sessionDir, log);
-        // Output response to stdout for Claude Code to process
-        console.log(JSON.stringify(response));
+        // Output response JSON to stderr (Claude Code reads stderr for hook responses)
+        console.error(JSON.stringify(response));
+        // Return exit code 2 to block the tool call
+        if (response.decision === "deny") {
+          return 2;
+        }
         break;
       }
       case "agent-start":
@@ -121,10 +124,9 @@ export function handleHook(action: string): number {
         log("unknown-action", { action });
     }
   } catch (e) {
-    // Never block Claude Code. Ever.
+    // Never block Claude Code on errors
     log("fatal", { action, error: String(e) });
   }
 
-  // Always return 0 (success) - caller handles process.exit
   return 0;
 }
