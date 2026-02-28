@@ -3,6 +3,7 @@ import crypto from "crypto";
 import fs from "fs";
 import path from "path";
 import type { HookLogger } from "./shared-types.ts";
+import { suppress } from "./suppress.ts";
 
 /**
  * Write-then-rename for atomic file creation.
@@ -73,7 +74,7 @@ export function popQueue(
       if (err.code === "ENOENT") continue; // another hook got it first
       if (e instanceof SyntaxError) {
         // Corrupt file — remove and skip
-        try { fs.unlinkSync(dest); } catch { /* ignore */ }
+        suppress(() => fs.unlinkSync(dest));
         log("pop-queue", { entry, error: "corrupt json" });
         continue;
       }
