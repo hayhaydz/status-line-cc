@@ -175,6 +175,9 @@ export interface GitStatus {
   /** Number of modified files */
   modified: number;
 
+  /** Number of untracked files */
+  untracked: number;
+
   /** Whether repository is dirty (any changes) */
   isDirty: boolean;
 }

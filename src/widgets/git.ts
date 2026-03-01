@@ -50,11 +50,16 @@ async function getGitStatus(cwd?: string): Promise<GitStatus | null> {
   const modified = await execGit(["diff", "--name-only"], cwd);
   const modifiedCount = modified ? modified.split("\n").filter(Boolean).length : 0;
 
+  // Get untracked files count
+  const untracked = await execGit(["ls-files", "--others", "--exclude-standard"], cwd);
+  const untrackedCount = untracked ? untracked.split("\n").filter(Boolean).length : 0;
+
   return {
     branch,
     staged: stagedCount,
     modified: modifiedCount,
-    isDirty: stagedCount > 0 || modifiedCount > 0,
+    untracked: untrackedCount,
+    isDirty: stagedCount > 0 || modifiedCount > 0 || untrackedCount > 0,
   };
 }
 
@@ -77,7 +82,7 @@ export class GitWidget extends BaseWidget {
       return null;
     }
 
-    const totalChanges = status.staged + status.modified;
+    const totalChanges = status.staged + status.modified + status.untracked;
     return `*${totalChanges}`;
   }
 }
