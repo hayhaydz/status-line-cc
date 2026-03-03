@@ -7,17 +7,23 @@ import { getSessionPaths } from "../util/session.ts";
 import type { HookLogger, HookResponse } from "../util/shared-types.ts";
 
 /**
+ * Tool names that spawn subagents.
+ * Claude Code uses "Agent" in hook payloads (may vary by version).
+ */
+const SUBAGENT_TOOL_NAMES = new Set(["Agent", "Task"]);
+
+/**
  * Handle PreToolUse hook event.
- * Extracts model from Task tool input and writes to queue.
- * Returns deny response if Task has subagent_type but no model.
+ * Extracts model from Agent/Task tool input and writes to queue.
+ * Returns deny response if tool has subagent_type but no model.
  */
 export function handlePreTool(
   input: PreToolUseInput,
   sessionDir: string,
   log: HookLogger
 ): HookResponse {
-  // Allow non-Task tools
-  if (input.tool_name !== "Task") {
+  // Only track tools that spawn subagents
+  if (!SUBAGENT_TOOL_NAMES.has(input.tool_name)) {
     return { decision: "allow" };
   }
 

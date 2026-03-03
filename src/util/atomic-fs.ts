@@ -48,6 +48,12 @@ export function popQueue(
   agentId: string,
   log: HookLogger
 ): string | null {
+  // Gracefully handle missing queue directory
+  if (!fs.existsSync(queueDir)) {
+    log("pop-queue", { error: "queue dir missing", agentId, queueDir });
+    return null;
+  }
+
   const entries = fs
     .readdirSync(queueDir)
     .filter(isQueueEntry)
