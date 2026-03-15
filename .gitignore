@@ -9,6 +9,9 @@ build/
 # Auto-generated memory files
 **/CLAUDE.md
 
+# Internal notes (keep private)
+.docs/
+
 # Node modules
 node_modules/
 

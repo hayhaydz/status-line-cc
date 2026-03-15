@@ -1,7 +1,7 @@
 {
   "name": "statusline-hyz-cc",
   "version": "0.1.0",
-  "private": true,
+  "private": false,
   "type": "module",
   "description": "Lightweight Claude Code CLI status line for GLM Coding Plan users",
   "scripts": {
